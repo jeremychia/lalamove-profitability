@@ -34,6 +34,11 @@ export const CONFIG = {
     platformFeeOffset: 0.5, // $0.50 already included in offered fare
   },
 
+  // Lalamove multi-stop pricing (Singapore, Motorcycle)
+  multiStop: {
+    additionalStopFare: 3.0, // $3 per additional stop (part of gross fare)
+  },
+
   traffic: {
     conditions: {
       light: { label: "Light Traffic", speedKmH: 35, icon: "🟢" },

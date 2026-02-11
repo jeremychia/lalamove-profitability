@@ -1,0 +1,226 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Efficiency guide for Lalamove motorcycle riders in Singapore. Understand which orders are most profitable."
+    />
+    <meta name="theme-color" content="#f97316" />
+    <title>📊 Efficiency Guide - Lalamove Calculator</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>"
+    />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <h1>📊 Efficiency Guide</h1>
+        <p class="subtitle">Understand which jobs are most profitable</p>
+        <a href="index.html" class="back-link">← Back to Calculator</a>
+      </header>
+
+      <!-- Main Content -->
+      <main class="main-content guide-content">
+        <!-- Key Insight -->
+        <section class="guide-section highlight-section">
+          <h2>💡 Key Insight</h2>
+          <p class="lead-text">
+            <strong>Short trips with multiple stops</strong> are often more
+            profitable than long single-stop trips because each additional stop
+            adds <strong>$3</strong> to the fare while only adding
+            <strong>~5 mins</strong> wait time.
+          </p>
+        </section>
+
+        <!-- How Deductions Work -->
+        <section class="guide-section">
+          <h2>💸 How Lalamove Deductions Work</h2>
+          <div class="deduction-flow">
+            <div class="flow-item">
+              <span class="flow-label">Offered Fare</span>
+              <span class="flow-desc">(What you see in app)</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-item flow-subtract">
+              <span class="flow-label">− Platform Fee Offset</span>
+              <span class="flow-value">$0.50</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-item">
+              <span class="flow-label">= Base Fare</span>
+              <span class="flow-desc">(For commission calculation)</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-item flow-subtract">
+              <span class="flow-label">− Commission</span>
+              <span class="flow-value">15% of base</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-item flow-subtract">
+              <span class="flow-label">− VAT/GST</span>
+              <span class="flow-value">9% of base</span>
+            </div>
+            <div class="flow-arrow">↓</div>
+            <div class="flow-item flow-result">
+              <span class="flow-label">= Net Fare</span>
+              <span class="flow-desc">~76% of offered fare</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Efficiency Comparison Table -->
+        <section class="guide-section">
+          <h2>📈 Multi-Stop Efficiency Analysis</h2>
+          <p class="section-intro">
+            Each additional stop adds <strong>$3</strong> to the gross fare.
+            Here's how it breaks down after deductions:
+          </p>
+          <div class="table-container">
+            <table class="efficiency-table" id="efficiency-table">
+              <thead>
+                <tr>
+                  <th>Stops</th>
+                  <th>Added Fare</th>
+                  <th>Net Added</th>
+                  <th>Wait Time</th>
+                  <th>$/Hour</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Populated by JavaScript -->
+              </tbody>
+            </table>
+          </div>
+          <p class="table-note">
+            * Assumes 5 min average wait per stop (varies by building type)
+          </p>
+        </section>
+
+        <!-- Profitability Scenarios -->
+        <section class="guide-section">
+          <h2>🎯 Scenario Comparison</h2>
+          <p class="section-intro">
+            Comparing typical order types (assuming normal traffic, $2.87/L
+            petrol, 45 km/L efficiency):
+          </p>
+          <div class="scenarios-grid" id="scenarios-grid">
+            <!-- Populated by JavaScript -->
+          </div>
+        </section>
+
+        <!-- Decision Framework -->
+        <section class="guide-section">
+          <h2>✅ Quick Decision Framework</h2>
+          <div class="decision-cards">
+            <div class="decision-card good">
+              <h3>🟢 Take It</h3>
+              <ul>
+                <li>Multi-stop with 2+ drops nearby</li>
+                <li>Short distance (&lt;5km) at decent fare</li>
+                <li>$20+/hour potential</li>
+                <li>HDB/Landed drops (quick handover)</li>
+              </ul>
+            </div>
+            <div class="decision-card maybe">
+              <h3>🟡 Consider</h3>
+              <ul>
+                <li>Medium distance with fair fare</li>
+                <li>$15-20/hour potential</li>
+                <li>Condo drops (moderate wait)</li>
+                <li>Positions you for better area</li>
+              </ul>
+            </div>
+            <div class="decision-card avoid">
+              <h3>🔴 Avoid</h3>
+              <ul>
+                <li>Long distance, single stop, low fare</li>
+                <li>Below $15/hour potential</li>
+                <li>Office/Mall drops during peak (long waits)</li>
+                <li>Takes you far from high-demand areas</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- Rating Thresholds -->
+        <section class="guide-section">
+          <h2>📊 Profitability Ratings</h2>
+          <div class="rating-scale" id="rating-scale">
+            <!-- Populated by JavaScript -->
+          </div>
+        </section>
+
+        <!-- Building Wait Times -->
+        <section class="guide-section">
+          <h2>🏢 Wait Time by Building Type</h2>
+          <div class="wait-times-grid" id="wait-times-grid">
+            <!-- Populated by JavaScript -->
+          </div>
+        </section>
+
+        <!-- Pro Tips -->
+        <section class="guide-section">
+          <h2>💪 Pro Tips</h2>
+          <div class="tips-list">
+            <div class="tip">
+              <span class="tip-icon">⏰</span>
+              <div class="tip-content">
+                <strong>Avoid peak hours for office drops</strong>
+                <p>
+                  Lunch (12-1pm) and end-of-day (5-6pm) means longer waits at
+                  office lobbies.
+                </p>
+              </div>
+            </div>
+            <div class="tip">
+              <span class="tip-icon">🎯</span>
+              <div class="tip-content">
+                <strong>Cluster your drops</strong>
+                <p>
+                  Multi-stop orders in the same estate are gold - minimal travel
+                  between stops.
+                </p>
+              </div>
+            </div>
+            <div class="tip">
+              <span class="tip-icon">🗺️</span>
+              <div class="tip-content">
+                <strong>Know your zones</strong>
+                <p>
+                  Some areas have higher demand. Don't take a low fare that
+                  moves you to a dead zone.
+                </p>
+              </div>
+            </div>
+            <div class="tip">
+              <span class="tip-icon">⛽</span>
+              <div class="tip-content">
+                <strong>Fuel is ~5-10% of your fare</strong>
+                <p>
+                  Don't obsess over petrol costs - time efficiency matters more.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        <p>
+          <a href="index.html">← Back to Calculator</a>
+        </p>
+        <p class="disclaimer">
+          These are estimates based on typical scenarios. Actual results vary.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="js/guide.js"></script>
+  </body>
+</html>
