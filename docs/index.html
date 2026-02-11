@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Calculate profitability of Lalamove delivery orders in Singapore. Optimize your earnings as a motorcycle delivery rider."
+    />
+    <meta name="theme-color" content="#f97316" />
+    <title>🏍️ Lalamove Profitability Calculator</title>
+    <link rel="stylesheet" href="style.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏍️</text></svg>"
+    />
+  </head>
+  <body>
+    <div class="app-container">
+      <!-- Header -->
+      <header class="app-header">
+        <h1>🏍️ Lalamove Profitability Calculator</h1>
+        <p class="subtitle">Should you take that order? Find out in seconds.</p>
+      </header>
+
+      <!-- Token Reminder -->
+      <div id="token-reminder" class="token-reminder hidden">
+        <span class="reminder-icon">💡</span>
+        <span
+          >Add your
+          <a
+            href="https://www.onemap.gov.sg/apidocs/"
+            target="_blank"
+            rel="noopener"
+            >OneMap API token</a
+          >
+          in Settings for accurate route calculations.</span
+        >
+        <button
+          type="button"
+          class="dismiss-btn"
+          onclick="this.parentElement.classList.add('hidden')"
+        >
+          ×
+        </button>
+      </div>
+
+      <!-- Main Form -->
+      <main class="main-content">
+        <form id="calculator-form" class="calculator-form">
+          <!-- Location Inputs -->
+          <section class="form-section">
+            <h2>📍 Locations</h2>
+
+            <div class="form-group">
+              <label for="current-location">
+                <span class="icon">🏍️</span>
+                Your Current Location
+                <span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="current-location"
+                name="current-location"
+                placeholder="Enter postal code or address (e.g., 639798)"
+                required
+                autocomplete="off"
+              />
+              <div class="input-hint" id="current-location-hint"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="pickup">
+                <span class="icon">📦</span>
+                Pickup Address
+                <span class="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="pickup"
+                name="pickup"
+                placeholder="Where to collect the order"
+                required
+                autocomplete="off"
+              />
+              <div class="input-hint" id="pickup-hint"></div>
+            </div>
+          </section>
+
+          <!-- Delivery Stops -->
+          <section class="form-section">
+            <h2>🚚 Delivery Stops</h2>
+            <p class="section-hint">
+              Add delivery stops in order. Wait times are auto-estimated based
+              on building type.
+            </p>
+
+            <div id="stops-container" class="stops-container">
+              <!-- Stops will be added dynamically -->
+            </div>
+
+            <button type="button" id="add-stop-btn" class="btn-secondary">
+              + Add Another Stop
+            </button>
+          </section>
+
+          <!-- Fare Input -->
+          <section class="form-section">
+            <h2>💰 Order Details</h2>
+
+            <div class="form-group">
+              <label for="fare">
+                <span class="icon">💵</span>
+                Fare Offered (SGD)
+                <span class="required">*</span>
+              </label>
+              <div class="input-with-prefix">
+                <span class="input-prefix">$</span>
+                <input
+                  type="number"
+                  id="fare"
+                  name="fare"
+                  placeholder="0.00"
+                  step="0.01"
+                  min="0"
+                  required
+                />
+              </div>
+              <div class="input-hint" id="fare-hint"></div>
+            </div>
+          </section>
+
+          <!-- Settings Panel -->
+          <section class="form-section settings-section">
+            <button type="button" id="settings-toggle" class="settings-toggle">
+              ⚙️ Settings
+            </button>
+
+            <div id="settings-panel" class="settings-panel hidden">
+              <!-- Traffic Condition -->
+              <div class="form-group">
+                <label for="traffic-condition">
+                  <span class="icon">🚦</span>
+                  Traffic Condition
+                </label>
+                <select id="traffic-condition" name="traffic-condition">
+                  <!-- Options populated by JS with auto-detected default -->
+                </select>
+                <div class="input-hint" id="traffic-hint">
+                  Auto-detected based on Singapore time. Override if needed.
+                </div>
+              </div>
+
+              <!-- Bike Model -->
+              <div class="form-group">
+                <label for="bike-model">
+                  <span class="icon">🏍️</span>
+                  Motorcycle Model
+                </label>
+                <select id="bike-model" name="bike-model">
+                  <!-- Options populated by JS -->
+                </select>
+              </div>
+
+              <!-- Custom Efficiency (shown when custom selected) -->
+              <div
+                class="form-group"
+                id="custom-efficiency-group"
+                style="display: none"
+              >
+                <label for="custom-efficiency">
+                  Custom Fuel Efficiency (km/L)
+                </label>
+                <input
+                  type="number"
+                  id="custom-efficiency"
+                  name="custom-efficiency"
+                  placeholder="e.g., 40"
+                  step="1"
+                  min="1"
+                  max="100"
+                />
+              </div>
+
+              <!-- Petrol Price -->
+              <div class="form-group">
+                <label for="petrol-price">
+                  <span class="icon">⛽</span>
+                  Petrol Price ($/L)
+                </label>
+                <div class="input-with-prefix">
+                  <span class="input-prefix">$</span>
+                  <input
+                    type="number"
+                    id="petrol-price"
+                    name="petrol-price"
+                    placeholder="2.75"
+                    step="0.01"
+                    min="0"
+                    value="2.75"
+                  />
+                </div>
+                <div class="petrol-links-container">
+                  <span class="links-label">Check prices:</span>
+                  <div id="petrol-links" class="petrol-links">
+                    <!-- Links populated by JS -->
+                  </div>
+                </div>
+              </div>
+
+              <!-- API Token -->
+              <div class="form-group">
+                <label for="api-token">
+                  <span class="icon">🔑</span>
+                  OneMap API Token
+                  <span class="optional">(optional)</span>
+                </label>
+                <input
+                  type="password"
+                  id="api-token"
+                  name="api-token"
+                  placeholder="For accurate routing"
+                  autocomplete="off"
+                />
+                <div class="input-hint">
+                  Get a free token from
+                  <a
+                    href="https://www.onemap.gov.sg/apidocs/"
+                    target="_blank"
+                    rel="noopener"
+                    >OneMap</a
+                  >. Without it, distances are estimated.
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submit-btn" class="btn-primary">
+            Calculate Profitability
+          </button>
+        </form>
+
+        <!-- Results Container -->
+        <section id="results-container" class="results-container hidden">
+          <!-- Results rendered by JS -->
+        </section>
+      </main>
+
+      <!-- Footer -->
+      <footer class="app-footer">
+        <p>
+          Built for Singapore 🇸🇬 motorcycle delivery riders.
+          <a
+            href="https://github.com/jeremychia/lalamove-profitability"
+            target="_blank"
+            rel="noopener"
+            >View on GitHub</a
+          >
+        </p>
+        <p class="disclaimer">
+          Estimates are approximate. Actual times and costs may vary based on
+          traffic, weather, and other factors.
+        </p>
+      </footer>
+    </div>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

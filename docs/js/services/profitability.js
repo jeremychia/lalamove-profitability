@@ -1,0 +1,224 @@
+/**
+ * Profitability Calculation Service
+ * Core business logic for determining order profitability
+ * @module services/profitability
+ */
+
+import { CONFIG, PROFIT_THRESHOLDS } from "../config.js";
+
+/**
+ * @typedef {Object} ProfitabilityResult
+ * @property {number} fare - Offered fare
+ * @property {number} fuelCost - Calculated fuel cost
+ * @property {number} netProfit - Profit after fuel
+ * @property {number} totalTimeMinutes - Total time for the order
+ * @property {number} profitPerHour - Hourly profit rate
+ * @property {string} rating - Rating key (excellent/good/okay/poor)
+ * @property {Object} ratingDetails - Full rating information
+ * @property {Object} breakdown - Detailed time/cost breakdown
+ */
+
+/**
+ * Calculate overall profitability of an order
+ *
+ * @param {Object} params
+ * @param {number} params.fare - Offered fare in SGD
+ * @param {number} params.fuelCost - Calculated fuel cost in SGD
+ * @param {number} params.travelMinutes - Total travel time
+ * @param {number} params.waitMinutes - Total wait time at delivery stops
+ * @param {number} [params.pickupWaitMinutes] - Wait time at pickup
+ * @returns {ProfitabilityResult}
+ */
+export function calculateProfitability({
+  fare,
+  fuelCost,
+  travelMinutes,
+  waitMinutes,
+  pickupWaitMinutes = CONFIG.defaults.pickupWaitMinutes,
+}) {
+  // Calculate net profit
+  const netProfit = fare - fuelCost;
+
+  // Calculate total time
+  const totalTimeMinutes = travelMinutes + waitMinutes + pickupWaitMinutes;
+  const totalTimeHours = totalTimeMinutes / 60;
+
+  // Calculate hourly rate
+  const profitPerHour = totalTimeHours > 0 ? netProfit / totalTimeHours : 0;
+
+  // Determine rating
+  const rating = getRating(profitPerHour);
+  const ratingDetails = PROFIT_THRESHOLDS[rating];
+
+  return {
+    fare,
+    fuelCost,
+    netProfit,
+    totalTimeMinutes,
+    profitPerHour,
+    rating,
+    ratingDetails,
+    breakdown: {
+      travelMinutes,
+      waitMinutes,
+      pickupWaitMinutes,
+      fuelCostPercentage: fare > 0 ? (fuelCost / fare) * 100 : 0,
+    },
+  };
+}
+
+/**
+ * Determine profitability rating based on hourly rate
+ *
+ * @param {number} profitPerHour
+ * @returns {string} Rating key
+ */
+function getRating(profitPerHour) {
+  if (profitPerHour >= PROFIT_THRESHOLDS.excellent.min) return "excellent";
+  if (profitPerHour >= PROFIT_THRESHOLDS.good.min) return "good";
+  if (profitPerHour >= PROFIT_THRESHOLDS.okay.min) return "okay";
+  return "poor";
+}
+
+/**
+ * Compare profitability of two orders
+ * Useful for deciding between multiple available orders
+ *
+ * @param {ProfitabilityResult} order1
+ * @param {ProfitabilityResult} order2
+ * @returns {Object} Comparison result
+ */
+export function compareOrders(order1, order2) {
+  const profitDiff = order1.profitPerHour - order2.profitPerHour;
+  const timeDiff = order1.totalTimeMinutes - order2.totalTimeMinutes;
+
+  return {
+    betterOrder: profitDiff >= 0 ? 1 : 2,
+    profitPerHourDifference: Math.abs(profitDiff),
+    timeDifference: timeDiff,
+    recommendation:
+      profitDiff > 5
+        ? "Strong preference for order 1"
+        : profitDiff > 2
+          ? "Slight preference for order 1"
+          : profitDiff > -2
+            ? "Similar profitability"
+            : profitDiff > -5
+              ? "Slight preference for order 2"
+              : "Strong preference for order 2",
+  };
+}
+
+/**
+ * Calculate minimum acceptable fare for a route
+ * Based on target hourly rate
+ *
+ * @param {number} fuelCost - Estimated fuel cost
+ * @param {number} totalTimeMinutes - Estimated total time
+ * @param {number} targetHourlyRate - Desired $/hour
+ * @returns {number} Minimum fare
+ */
+export function calculateMinimumFare(
+  fuelCost,
+  totalTimeMinutes,
+  targetHourlyRate,
+) {
+  const timeHours = totalTimeMinutes / 60;
+  const desiredProfit = targetHourlyRate * timeHours;
+  return fuelCost + desiredProfit;
+}
+
+/**
+ * Analyze what-if scenarios for different fares
+ *
+ * @param {Object} baseParams - Base calculation parameters (without fare)
+ * @param {number[]} fareOptions - Array of fare options to analyze
+ * @returns {Array} Array of profitability results
+ */
+export function analyzeFareScenarios(baseParams, fareOptions) {
+  return fareOptions.map((fare) => ({
+    fare,
+    result: calculateProfitability({ ...baseParams, fare }),
+  }));
+}
+
+/**
+ * Get profitability insights and recommendations
+ *
+ * @param {ProfitabilityResult} result
+ * @returns {Object} Insights object
+ */
+export function getInsights(result) {
+  const insights = [];
+  const recommendations = [];
+
+  // Fuel cost analysis
+  if (result.breakdown.fuelCostPercentage > 20) {
+    insights.push({
+      type: "warning",
+      message: `Fuel cost is ${result.breakdown.fuelCostPercentage.toFixed(
+        1,
+      )}% of fare - quite high`,
+    });
+    recommendations.push("Consider avoiding long-distance, low-fare orders");
+  }
+
+  // Time analysis
+  if (result.breakdown.waitMinutes > result.breakdown.travelMinutes) {
+    insights.push({
+      type: "info",
+      message:
+        "Wait time exceeds travel time - multiple stops or slow handovers",
+    });
+    recommendations.push("Wait times are eating into your earnings");
+  }
+
+  // Profitability analysis
+  if (result.rating === "poor") {
+    insights.push({
+      type: "warning",
+      message: `At $${result.profitPerHour.toFixed(
+        2,
+      )}/hr, this is below minimum wage`,
+    });
+    recommendations.push(
+      "Consider declining unless it positions you well for better orders",
+    );
+  } else if (result.rating === "excellent") {
+    insights.push({
+      type: "success",
+      message: "Excellent hourly rate - prioritize this order",
+    });
+  }
+
+  // Minimum fare for "good" rating
+  const minFareForGood = calculateMinimumFare(
+    result.fuelCost,
+    result.totalTimeMinutes,
+    PROFIT_THRESHOLDS.good.min,
+  );
+
+  if (
+    result.fare < minFareForGood &&
+    result.rating !== "excellent" &&
+    result.rating !== "good"
+  ) {
+    recommendations.push(
+      `Fare would need to be $${minFareForGood.toFixed(2)} for a "Good" rating`,
+    );
+  }
+
+  return {
+    insights,
+    recommendations,
+    minimumFareForGood: minFareForGood,
+  };
+}
+
+/**
+ * Get all profit thresholds
+ * @returns {Object}
+ */
+export function getProfitThresholds() {
+  return { ...PROFIT_THRESHOLDS };
+}
