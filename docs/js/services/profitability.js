@@ -7,16 +7,64 @@
 import { CONFIG, PROFIT_THRESHOLDS } from "../config.js";
 
 /**
+ * @typedef {Object} FareBreakdown
+ * @property {number} grossFare - Original offered fare
+ * @property {number} commission - Commission deducted
+ * @property {number} vat - VAT/GST deducted
+ * @property {number} cpfWithholding - CPF withholding deducted
+ * @property {number} platformFee - Platform fee offset deducted
+ * @property {number} totalDeductions - Sum of all deductions
+ * @property {number} netFare - Fare after all deductions
+ */
+
+/**
  * @typedef {Object} ProfitabilityResult
- * @property {number} fare - Offered fare
+ * @property {number} fare - Offered fare (gross)
+ * @property {number} netFare - Fare after Lalamove deductions
+ * @property {FareBreakdown} fareBreakdown - Detailed fare breakdown
  * @property {number} fuelCost - Calculated fuel cost
- * @property {number} netProfit - Profit after fuel
+ * @property {number} netProfit - Profit after fuel and deductions
  * @property {number} totalTimeMinutes - Total time for the order
  * @property {number} profitPerHour - Hourly profit rate
  * @property {string} rating - Rating key (excellent/good/okay/poor)
  * @property {Object} ratingDetails - Full rating information
  * @property {Object} breakdown - Detailed time/cost breakdown
  */
+
+/**
+ * Calculate fare breakdown after Lalamove deductions
+ *
+ * @param {number} grossFare - Original offered fare (includes platform fee offset)
+ * @returns {FareBreakdown}
+ */
+export function calculateFareBreakdown(grossFare) {
+  const { commissionRate, vatRate, cpfWithholdingRate, platformFeeOffset } =
+    CONFIG.fareDeductions;
+
+  // The gross fare includes the platform fee offset
+  // Commission and VAT are calculated on the base fare (before platform fee was added)
+  const baseFare = grossFare - platformFeeOffset;
+
+  // Calculate each deduction on the base fare
+  const commission = baseFare * commissionRate;
+  const vat = baseFare * vatRate;
+  const cpfWithholding = baseFare * cpfWithholdingRate;
+  const platformFee = platformFeeOffset;
+
+  const totalDeductions = commission + vat + cpfWithholding + platformFee;
+  const netFare = grossFare - totalDeductions;
+
+  return {
+    grossFare,
+    baseFare,
+    commission,
+    vat,
+    cpfWithholding,
+    platformFee,
+    totalDeductions,
+    netFare,
+  };
+}
 
 /**
  * Calculate overall profitability of an order
@@ -36,8 +84,12 @@ export function calculateProfitability({
   waitMinutes,
   pickupWaitMinutes = CONFIG.defaults.pickupWaitMinutes,
 }) {
-  // Calculate net profit
-  const netProfit = fare - fuelCost;
+  // Calculate fare breakdown after Lalamove deductions
+  const fareBreakdown = calculateFareBreakdown(fare);
+  const netFare = fareBreakdown.netFare;
+
+  // Calculate net profit (after deductions AND fuel)
+  const netProfit = netFare - fuelCost;
 
   // Calculate total time
   const totalTimeMinutes = travelMinutes + waitMinutes + pickupWaitMinutes;
@@ -52,6 +104,8 @@ export function calculateProfitability({
 
   return {
     fare,
+    netFare,
+    fareBreakdown,
     fuelCost,
     netProfit,
     totalTimeMinutes,
@@ -62,7 +116,7 @@ export function calculateProfitability({
       travelMinutes,
       waitMinutes,
       pickupWaitMinutes,
-      fuelCostPercentage: fare > 0 ? (fuelCost / fare) * 100 : 0,
+      fuelCostPercentage: netFare > 0 ? (fuelCost / netFare) * 100 : 0,
     },
   };
 }

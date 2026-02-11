@@ -24,6 +24,16 @@ export const CONFIG = {
     maxFare: 500,
   },
 
+  // Lalamove fare deductions (Singapore)
+  // The offered fare includes the platform fee offset
+  // Commission and VAT are calculated on base fare (gross fare - platform fee)
+  fareDeductions: {
+    commissionRate: 0.15, // 15% commission on base fare
+    vatRate: 0.09, // 9% GST/VAT for Singapore
+    cpfWithholdingRate: 0.0, // Platform Worker's Act CPF (set to 0 if not yet applicable)
+    platformFeeOffset: 0.5, // $0.50 already included in offered fare
+  },
+
   traffic: {
     conditions: {
       light: { label: "Light Traffic", speedKmH: 35, icon: "🟢" },

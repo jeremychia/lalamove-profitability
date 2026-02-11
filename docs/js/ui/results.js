@@ -42,6 +42,10 @@ export function renderResults(result) {
   const metricsGrid = createMetricsGrid(result);
   container.appendChild(metricsGrid);
 
+  // Fare breakdown (Lalamove deductions)
+  const fareSection = createFareBreakdown(result.profitability);
+  container.appendChild(fareSection);
+
   // Route breakdown
   const routeSection = createRouteSection(result.route);
   container.appendChild(routeSection);
@@ -182,6 +186,83 @@ function createRouteSection(route) {
     `;
     section.appendChild(warning);
   }
+
+  return section;
+}
+
+/**
+ * Create fare breakdown section showing Lalamove deductions
+ *
+ * @param {Object} profitability
+ * @returns {HTMLElement}
+ */
+function createFareBreakdown(profitability) {
+  const section = document.createElement("div");
+  section.className = "results-section fare-section";
+
+  const { fareBreakdown, fuelCost, netProfit } = profitability;
+
+  section.innerHTML = `
+    <h3>💵 Fare Breakdown</h3>
+    <div class="fare-breakdown">
+      <div class="fare-row gross">
+        <span class="fare-label">Offered Fare</span>
+        <span class="fare-value">${formatCurrency(
+          fareBreakdown.grossFare,
+        )}</span>
+      </div>
+      <div class="fare-row base-info">
+        <span class="fare-label">Base Fare (excl. platform fee)</span>
+        <span class="fare-value">${formatCurrency(
+          fareBreakdown.baseFare,
+        )}</span>
+      </div>
+      <div class="fare-row deduction">
+        <span class="fare-label">− Commission (15% of base)</span>
+        <span class="fare-value">-${formatCurrency(
+          fareBreakdown.commission,
+        )}</span>
+      </div>
+      <div class="fare-row deduction">
+        <span class="fare-label">− VAT/GST (9% of base)</span>
+        <span class="fare-value">-${formatCurrency(fareBreakdown.vat)}</span>
+      </div>
+      ${
+        fareBreakdown.cpfWithholding > 0
+          ? `
+      <div class="fare-row deduction">
+        <span class="fare-label">− CPF Withholding</span>
+        <span class="fare-value">-${formatCurrency(
+          fareBreakdown.cpfWithholding,
+        )}</span>
+      </div>
+      `
+          : ""
+      }
+      <div class="fare-row deduction">
+        <span class="fare-label">− Platform Fee Offset</span>
+        <span class="fare-value">-${formatCurrency(
+          fareBreakdown.platformFee,
+        )}</span>
+      </div>
+      <div class="fare-row subtotal">
+        <span class="fare-label">Net Fare (after deductions)</span>
+        <span class="fare-value">${formatCurrency(fareBreakdown.netFare)}</span>
+      </div>
+      <div class="fare-row deduction">
+        <span class="fare-label">− Fuel Cost</span>
+        <span class="fare-value">-${formatCurrency(fuelCost)}</span>
+      </div>
+      <div class="fare-row total ${netProfit >= 0 ? "positive" : "negative"}">
+        <span class="fare-label">Your Net Profit</span>
+        <span class="fare-value">${formatCurrency(netProfit)}</span>
+      </div>
+    </div>
+    <div class="fare-note">
+      <span class="note-icon">ℹ️</span>
+      <span>Deductions are estimates based on typical Lalamove rates. Actual amounts may vary.</span>
+    </div>
+  `;
 
   return section;
 }
