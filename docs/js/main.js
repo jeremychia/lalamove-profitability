@@ -39,16 +39,48 @@ export async function init() {
   });
 
   // Try to get a valid token (will auto-fetch if secrets.js exists)
+  updateApiStatus("checking");
   const token = await getValidToken();
 
   if (!token) {
     showTokenReminder();
+    updateApiStatus("disconnected");
   } else {
     hideTokenReminder();
+    updateApiStatus("connected");
     console.log("✅ Valid API token available");
   }
 
   console.log("✅ App initialized");
+}
+
+/**
+ * Update the API status indicator
+ * @param {'checking'|'connected'|'disconnected'} status
+ */
+function updateApiStatus(status) {
+  const statusEl = document.getElementById("api-status");
+  if (!statusEl) return;
+
+  const iconEl = statusEl.querySelector(".status-icon");
+  const textEl = statusEl.querySelector(".status-text");
+
+  statusEl.className = `api-status ${status}`;
+
+  switch (status) {
+    case "checking":
+      iconEl.textContent = "⏳";
+      textEl.textContent = "Checking OneMap API...";
+      break;
+    case "connected":
+      iconEl.textContent = "✅";
+      textEl.textContent = "OneMap API connected";
+      break;
+    case "disconnected":
+      iconEl.textContent = "⚠️";
+      textEl.textContent = "No API token (estimates only)";
+      break;
+  }
 }
 
 /**

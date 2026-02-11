@@ -127,6 +127,38 @@ a:hover {
   font-size: 1rem;
 }
 
+/* API Status Indicator */
+.api-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-radius: var(--radius-full);
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: var(--transition-normal);
+}
+
+.api-status.checking {
+  background-color: var(--color-bg-light);
+  color: var(--color-text-light);
+}
+
+.api-status.connected {
+  background-color: #d1fae5;
+  color: #047857;
+}
+
+.api-status.disconnected {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.api-status .status-icon {
+  font-size: 0.9rem;
+}
+
 /* --------------------------------------------------------------------------
    Token Reminder
    -------------------------------------------------------------------------- */
