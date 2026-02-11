@@ -10,7 +10,12 @@ import { calculateMultiStopRoute } from "./services/routing.js";
 import { calculateFuelCost, getBikeEfficiency } from "./services/fuel.js";
 import { calculateTotalWaitTime } from "./services/wait-time.js";
 import { calculateProfitability } from "./services/profitability.js";
-import { initForm, setFormLoading, updateStopTypeBadge } from "./ui/form.js";
+import {
+  initForm,
+  setFormLoading,
+  updateStopTypeBadge,
+  updatePickupTypeBadge,
+} from "./ui/form.js";
 import {
   renderResults,
   renderError,
@@ -159,6 +164,11 @@ async function analyzeOrder(formData) {
   const [currentCoords, pickupCoords, ...stopCoords] = geocodedLocations;
 
   // Update UI with detected building types
+  updatePickupTypeBadge(
+    pickupCoords.buildingType,
+    pickupCoords.buildingType.toUpperCase(),
+  );
+
   stopCoords.forEach((stop, index) => {
     updateStopTypeBadge(
       index + 1,

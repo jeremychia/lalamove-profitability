@@ -405,6 +405,47 @@ input.input-error:focus {
   color: #374151;
 }
 
+/* Pickup Type Badge */
+.pickup-type-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-light);
+  color: var(--color-text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.pickup-type-badge.hidden {
+  display: none;
+}
+
+.pickup-type-badge.type-hdb {
+  background-color: #dbeafe;
+  color: #1d4ed8;
+}
+.pickup-type-badge.type-condo {
+  background-color: #fae8ff;
+  color: #a21caf;
+}
+.pickup-type-badge.type-office {
+  background-color: #f3e8ff;
+  color: #7c3aed;
+}
+.pickup-type-badge.type-mall {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+.pickup-type-badge.type-landed {
+  background-color: #d1fae5;
+  color: #047857;
+}
+.pickup-type-badge.type-industrial {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
 .stop-wait {
   display: flex;
   align-items: center;

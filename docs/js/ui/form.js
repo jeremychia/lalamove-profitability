@@ -430,6 +430,21 @@ export function updateStopTypeBadge(index, buildingType, label) {
 }
 
 /**
+ * Update pickup location type badge
+ *
+ * @param {string} buildingType
+ * @param {string} label
+ */
+export function updatePickupTypeBadge(buildingType, label) {
+  const badge = document.getElementById("pickup-type-badge");
+  if (badge) {
+    badge.textContent = `📍 ${label}`;
+    badge.className = `pickup-type-badge type-${buildingType}`;
+    badge.classList.remove("hidden");
+  }
+}
+
+/**
  * Set form to loading state
  *
  * @param {boolean} isLoading
