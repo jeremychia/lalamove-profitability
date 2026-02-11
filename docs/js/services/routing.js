@@ -75,6 +75,12 @@ export async function calculateMultiStopRoute(
     totalTravelMinutes: sumBy(legs, "timeMinutes"),
     hasEstimates,
     trafficCondition: traffic,
+    // Store coordinates for Google Maps link
+    coordinates: points.map((p) => ({
+      lat: p.lat,
+      lng: p.lng,
+      address: p.address,
+    })),
   };
 }
 

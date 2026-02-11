@@ -23,6 +23,49 @@ import { getInsights } from "../services/profitability.js";
 import { PROFIT_THRESHOLDS, CONFIG } from "../config.js";
 
 /**
+ * Create a Google Maps directions URL from coordinates
+ * @param {Array<{lat: number, lng: number}>} coordinates
+ * @returns {string}
+ */
+function buildGoogleMapsUrl(coordinates) {
+  if (coordinates.length < 2) return "";
+
+  const origin = `${coordinates[0].lat},${coordinates[0].lng}`;
+  const destination = `${coordinates[coordinates.length - 1].lat},${
+    coordinates[coordinates.length - 1].lng
+  }`;
+
+  // Waypoints are all points between origin and destination
+  const waypoints = coordinates
+    .slice(1, -1)
+    .map((c) => `${c.lat},${c.lng}`)
+    .join("|");
+
+  let url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${destination}&travelmode=driving`;
+
+  if (waypoints) {
+    url += `&waypoints=${waypoints}`;
+  }
+
+  return url;
+}
+
+/**
+ * Create Google Maps link element
+ * @param {Array<{lat: number, lng: number}>} coordinates
+ * @returns {HTMLElement}
+ */
+function createGoogleMapsLink(coordinates) {
+  const link = document.createElement("a");
+  link.href = buildGoogleMapsUrl(coordinates);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.className = "maps-link";
+  link.innerHTML = `<span class="maps-icon">🗺️</span> Open in Google Maps`;
+  return link;
+}
+
+/**
  * Render full calculation results
  *
  * @param {Object} result - Complete calculation result
@@ -149,9 +192,20 @@ function createRouteSection(route) {
   const section = document.createElement("div");
   section.className = "results-section route-section";
 
+  const headerRow = document.createElement("div");
+  headerRow.className = "section-header-row";
+
   const header = document.createElement("h3");
   header.textContent = "🗺️ Route Breakdown";
-  section.appendChild(header);
+  headerRow.appendChild(header);
+
+  // Add Google Maps link if coordinates available
+  if (route.coordinates && route.coordinates.length >= 2) {
+    const mapsLink = createGoogleMapsLink(route.coordinates);
+    headerRow.appendChild(mapsLink);
+  }
+
+  section.appendChild(headerRow);
 
   // Show traffic condition badge
   if (route.trafficCondition) {
