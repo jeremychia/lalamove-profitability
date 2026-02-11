@@ -132,9 +132,10 @@ a:hover {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-xs);
-  margin-top: var(--spacing-sm);
-  padding: var(--spacing-xs) var(--spacing-md);
-  border-radius: var(--radius-full);
+  margin-top: var(--spacing-xs);
+  margin-bottom: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-sm);
   font-size: 0.8rem;
   font-weight: 500;
   transition: var(--transition-normal);
@@ -156,7 +157,7 @@ a:hover {
 }
 
 .api-status .status-icon {
-  font-size: 0.9rem;
+  font-size: 0.85rem;
 }
 
 /* --------------------------------------------------------------------------
