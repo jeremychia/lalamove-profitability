@@ -32,6 +32,9 @@ export function initForm({ onSubmit }) {
   // Initialize bike model dropdown
   initBikeSelect();
 
+  // Initialize petrol price from config
+  initPetrolPrice();
+
   // Initialize petrol price links
   initPetrolLinks();
 
@@ -117,6 +120,16 @@ function initTrafficSelect() {
     });
     hint.innerHTML = `Auto-detected for ${sgTime} Singapore time. Override if needed.`;
   }
+}
+
+/**
+ * Initialize petrol price input with default from config
+ */
+function initPetrolPrice() {
+  const input = document.getElementById("petrol-price");
+  if (!input) return;
+
+  input.value = CONFIG.defaults.petrolPrice;
 }
 
 /**
