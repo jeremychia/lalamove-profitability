@@ -596,6 +596,40 @@ input.input-error:focus {
   background-color: var(--color-primary-light);
 }
 
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.form-actions .btn-primary {
+  flex: 1;
+}
+
+.btn-reset {
+  padding: var(--spacing-md) var(--spacing-md);
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--color-text-light);
+  background-color: var(--color-bg-light);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-reset:hover {
+  background-color: var(--color-bg-white);
+  border-color: var(--color-text-light);
+  color: var(--color-text);
+}
+
+.btn-reset:active {
+  transform: scale(0.98);
+}
+
 /* --------------------------------------------------------------------------
    Settings Panel
    -------------------------------------------------------------------------- */

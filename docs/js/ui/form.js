@@ -42,6 +42,7 @@ export function initForm({ onSubmit }) {
   $("bike-model")?.addEventListener("change", handleBikeModelChange);
   $("settings-toggle")?.addEventListener("click", toggleSettings);
   $("use-my-location-btn")?.addEventListener("click", handleUseMyLocation);
+  $("reset-btn")?.addEventListener("click", resetForm);
 }
 
 /**
@@ -169,6 +170,67 @@ function handleBikeModelChange() {
   const customInput = $("custom-efficiency");
   if (customInput) {
     customInput.required = isCustom;
+  }
+}
+
+/**
+ * Reset form to initial state
+ */
+function resetForm() {
+  // Clear text inputs
+  const currentLocation = $("current-location");
+  const pickup = $("pickup");
+  const fare = $("fare");
+
+  if (currentLocation) currentLocation.value = "";
+  if (pickup) pickup.value = "";
+  if (fare) fare.value = "";
+
+  // Hide pickup badge
+  const pickupBadge = $("pickup-type-badge");
+  if (pickupBadge) {
+    pickupBadge.classList.add("hidden");
+    pickupBadge.textContent = "";
+  }
+
+  // Reset stops to just one empty stop
+  stopCount = 0;
+  const container = $("stops-container");
+  if (container) {
+    container.innerHTML = "";
+    addStop();
+  }
+
+  // Reset bike model to default
+  const bikeSelect = $("bike-model");
+  if (bikeSelect) {
+    bikeSelect.value = "ybr125";
+    handleBikeModelChange();
+  }
+
+  // Reset petrol price to default
+  const petrolInput = $("petrol-price");
+  if (petrolInput) {
+    petrolInput.value = CONFIG.defaults.petrolPrice;
+  }
+
+  // Reset traffic to auto-detected
+  initTrafficSelect();
+
+  // Clear any hints
+  const currentHint = $("current-location-hint");
+  const pickupHint = $("pickup-hint");
+  if (currentHint) currentHint.textContent = "";
+  if (pickupHint) pickupHint.textContent = "";
+
+  // Clear validation errors
+  clearErrors();
+
+  // Hide results if visible
+  const resultsContainer = $("results-container");
+  if (resultsContainer) {
+    resultsContainer.innerHTML = "";
+    toggleHidden(resultsContainer, false);
   }
 }
 
