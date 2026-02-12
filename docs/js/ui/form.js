@@ -12,7 +12,9 @@ import {
 } from "../config.js";
 import { createStopInput } from "./components.js";
 import { validateFormData, parseNumericInput } from "../utils/validation.js";
+import { $, $q, $qa, showHint, toggleHidden } from "../utils/dom.js";
 import { storeToken, getStoredToken, reverseGeocode } from "../api/onemap.js";
+import { formatReverseGeocodeAddress } from "../services/geocoding.js";
 
 let stopCount = 1;
 let onSubmitCallback = null;
@@ -26,60 +28,27 @@ let onSubmitCallback = null;
 export function initForm({ onSubmit }) {
   onSubmitCallback = onSubmit;
 
-  // Initialize traffic condition selector
+  // Initialize dynamic form elements
   initTrafficSelect();
-
-  // Initialize bike model dropdown
   initBikeSelect();
-
-  // Initialize petrol price from config
   initPetrolPrice();
-
-  // Initialize petrol price links
   initPetrolLinks();
-
-  // Initialize stops container
   initStopsContainer();
-
-  // Initialize token field
   initTokenField();
 
-  // Setup form submission
-  const form = document.getElementById("calculator-form");
-  if (form) {
-    form.addEventListener("submit", handleFormSubmit);
-  }
-
-  // Setup add stop button
-  const addStopBtn = document.getElementById("add-stop-btn");
-  if (addStopBtn) {
-    addStopBtn.addEventListener("click", addStop);
-  }
-
-  // Setup bike model change handler
-  const bikeSelect = document.getElementById("bike-model");
-  if (bikeSelect) {
-    bikeSelect.addEventListener("change", handleBikeModelChange);
-  }
-
-  // Setup settings toggle
-  const settingsToggle = document.getElementById("settings-toggle");
-  if (settingsToggle) {
-    settingsToggle.addEventListener("click", toggleSettings);
-  }
-
-  // Setup geolocation button
-  const locationBtn = document.getElementById("use-my-location-btn");
-  if (locationBtn) {
-    locationBtn.addEventListener("click", handleUseMyLocation);
-  }
+  // Setup event listeners
+  $("calculator-form")?.addEventListener("submit", handleFormSubmit);
+  $("add-stop-btn")?.addEventListener("click", addStop);
+  $("bike-model")?.addEventListener("change", handleBikeModelChange);
+  $("settings-toggle")?.addEventListener("click", toggleSettings);
+  $("use-my-location-btn")?.addEventListener("click", handleUseMyLocation);
 }
 
 /**
  * Initialize bike model select dropdown
  */
 function initBikeSelect() {
-  const select = document.getElementById("bike-model");
+  const select = $("bike-model");
   if (!select) return;
 
   select.innerHTML = BIKE_MODELS.map(
@@ -97,8 +66,8 @@ function initBikeSelect() {
  * Initialize traffic condition selector with auto-detected default
  */
 function initTrafficSelect() {
-  const select = document.getElementById("traffic-condition");
-  const hint = document.getElementById("traffic-hint");
+  const select = $("traffic-condition");
+  const hint = $("traffic-hint");
   if (!select) return;
 
   const detectedCondition = detectTrafficCondition();
@@ -132,7 +101,7 @@ function initTrafficSelect() {
  * Initialize petrol price input with default from config
  */
 function initPetrolPrice() {
-  const input = document.getElementById("petrol-price");
+  const input = $("petrol-price");
   if (!input) return;
 
   input.value = CONFIG.defaults.petrolPrice;
@@ -142,7 +111,7 @@ function initPetrolPrice() {
  * Initialize petrol price links
  */
 function initPetrolLinks() {
-  const container = document.getElementById("petrol-links");
+  const container = $("petrol-links");
   if (!container) return;
 
   container.innerHTML = PETROL_LINKS.map(
@@ -155,7 +124,7 @@ function initPetrolLinks() {
  * Initialize stops container with first stop
  */
 function initStopsContainer() {
-  const container = document.getElementById("stops-container");
+  const container = $("stops-container");
   if (!container) return;
 
   // Clear and add first stop
@@ -167,7 +136,7 @@ function initStopsContainer() {
  * Initialize API token field
  */
 function initTokenField() {
-  const tokenInput = document.getElementById("api-token");
+  const tokenInput = $("api-token");
   if (!tokenInput) return;
 
   // Load saved token
@@ -189,15 +158,15 @@ function initTokenField() {
  * Handle bike model selection change
  */
 function handleBikeModelChange() {
-  const select = document.getElementById("bike-model");
-  const customGroup = document.getElementById("custom-efficiency-group");
+  const select = $("bike-model");
+  const customGroup = $("custom-efficiency-group");
 
   if (!select || !customGroup) return;
 
   const isCustom = select.value === "custom";
-  customGroup.style.display = isCustom ? "block" : "none";
+  toggleHidden(customGroup, isCustom);
 
-  const customInput = document.getElementById("custom-efficiency");
+  const customInput = $("custom-efficiency");
   if (customInput) {
     customInput.required = isCustom;
   }
@@ -207,7 +176,7 @@ function handleBikeModelChange() {
  * Add a new stop input
  */
 function addStop() {
-  const container = document.getElementById("stops-container");
+  const container = $("stops-container");
   if (!container) return;
 
   if (stopCount >= CONFIG.limits.maxStops) {
@@ -229,18 +198,16 @@ function addStop() {
  * @param {number} index
  */
 function removeStop(index) {
-  const container = document.getElementById("stops-container");
+  const container = $("stops-container");
   if (!container) return;
 
-  const rows = container.querySelectorAll(".stop-row");
+  const rows = $qa(".stop-row", container);
   if (rows.length <= 1) {
     alert("At least one delivery stop is required");
     return;
   }
 
-  const rowToRemove = container.querySelector(
-    `.stop-row[data-index="${index}"]`,
-  );
+  const rowToRemove = $q(`.stop-row[data-index="${index}"]`, container);
   if (rowToRemove) {
     rowToRemove.remove();
     stopCount--;
@@ -253,13 +220,13 @@ function removeStop(index) {
  * Update stop numbers after add/remove
  */
 function updateStopNumbers() {
-  const container = document.getElementById("stops-container");
+  const container = $("stops-container");
   if (!container) return;
 
-  const rows = container.querySelectorAll(".stop-row");
+  const rows = $qa(".stop-row", container);
   rows.forEach((row, index) => {
     row.dataset.index = index + 1;
-    const numberEl = row.querySelector(".stop-number");
+    const numberEl = $q(".stop-number", row);
     if (numberEl) {
       numberEl.textContent = index + 1;
     }
@@ -270,12 +237,12 @@ function updateStopNumbers() {
  * Update remove button visibility
  */
 function updateRemoveButtons() {
-  const container = document.getElementById("stops-container");
+  const container = $("stops-container");
   if (!container) return;
 
-  const rows = container.querySelectorAll(".stop-row");
+  const rows = $qa(".stop-row", container);
   rows.forEach((row) => {
-    const btn = row.querySelector(".btn-remove");
+    const btn = $q(".btn-remove", row);
     if (btn) {
       btn.style.visibility = rows.length > 1 ? "visible" : "hidden";
     }
@@ -286,13 +253,13 @@ function updateRemoveButtons() {
  * Toggle settings panel visibility
  */
 function toggleSettings() {
-  const panel = document.getElementById("settings-panel");
-  const toggle = document.getElementById("settings-toggle");
+  const panel = $("settings-panel");
+  const toggle = $("settings-toggle");
 
   if (!panel || !toggle) return;
 
   const isHidden = panel.classList.contains("hidden");
-  panel.classList.toggle("hidden");
+  toggleHidden(panel, isHidden);
   toggle.textContent = isHidden ? "⚙️ Hide Settings" : "⚙️ Settings";
 }
 
@@ -301,9 +268,9 @@ function toggleSettings() {
  * Gets current GPS position and reverse geocodes to address
  */
 async function handleUseMyLocation() {
-  const btn = document.getElementById("use-my-location-btn");
-  const input = document.getElementById("current-location");
-  const hint = document.getElementById("current-location-hint");
+  const btn = $("use-my-location-btn");
+  const input = $("current-location");
+  const hint = $("current-location-hint");
 
   if (!btn || !input) return;
 
@@ -337,7 +304,7 @@ async function handleUseMyLocation() {
       const location = await reverseGeocode(latitude, longitude);
 
       // Build a readable address
-      const address = formatReverseGeocodeResult(location);
+      const address = formatReverseGeocodeAddress(location);
       input.value = address;
 
       showHint(hint, `📍 Location found: ${address}`, "success");
@@ -362,53 +329,6 @@ async function handleUseMyLocation() {
     // Reset button state
     btn.classList.remove("loading");
     btn.textContent = "📍";
-  }
-}
-
-/**
- * Format reverse geocode result into a readable address
- * @param {Object} location - OneMap reverse geocode result
- * @returns {string}
- */
-function formatReverseGeocodeResult(location) {
-  // Try to build the most useful address string
-  const parts = [];
-
-  if (location.BUILDINGNAME && location.BUILDINGNAME !== "NIL") {
-    parts.push(location.BUILDINGNAME);
-  }
-
-  if (location.BLOCK && location.BLOCK !== "NIL") {
-    parts.push(`Blk ${location.BLOCK}`);
-  }
-
-  if (location.ROAD && location.ROAD !== "NIL") {
-    parts.push(location.ROAD);
-  }
-
-  if (location.POSTALCODE && location.POSTALCODE !== "NIL") {
-    parts.push(`S(${location.POSTALCODE})`);
-  }
-
-  return parts.length > 0 ? parts.join(", ") : location.ADDRESS || "Unknown";
-}
-
-/**
- * Show a hint message
- * @param {HTMLElement} hintEl
- * @param {string} message
- * @param {string} [type] - 'error', 'success', or default
- */
-function showHint(hintEl, message, type = "") {
-  if (!hintEl) return;
-
-  hintEl.textContent = message;
-  hintEl.classList.remove("error", "success");
-
-  if (type === "error") {
-    hintEl.classList.add("error");
-  } else if (type === "success") {
-    hintEl.classList.add("success");
   }
 }
 
@@ -441,17 +361,17 @@ async function handleFormSubmit(event) {
  * @returns {Object} Form data object
  */
 export function getFormData() {
-  const form = document.getElementById("calculator-form");
+  const form = $("calculator-form");
   if (!form) return {};
 
   // Get stops
-  const stopInputs = form.querySelectorAll(".stop-input");
+  const stopInputs = $qa(".stop-input", form);
   const stops = Array.from(stopInputs)
     .map((input) => input.value.trim())
     .filter((value) => value.length > 0);
 
   // Get wait time overrides
-  const waitInputs = form.querySelectorAll(".wait-input");
+  const waitInputs = $qa(".wait-input", form);
   const waitOverrides = {};
   waitInputs.forEach((input, index) => {
     const value = input.value.trim();
@@ -494,15 +414,13 @@ export function getFormData() {
  */
 function displayErrors(errors) {
   Object.entries(errors).forEach(([field, message]) => {
-    const input =
-      document.querySelector(`[name="${field}"]`) ||
-      document.getElementById(field);
+    const input = $q(`[name="${field}"]`) || $(field);
 
     if (input) {
       input.classList.add("input-error");
 
       // Find or create hint element
-      let hint = document.getElementById(`${field}-hint`);
+      let hint = $(`${field}-hint`);
       if (!hint) {
         hint = document.createElement("div");
         hint.className = "input-hint error";
@@ -515,7 +433,7 @@ function displayErrors(errors) {
   });
 
   // Scroll to first error
-  const firstError = document.querySelector(".input-error");
+  const firstError = $q(".input-error");
   if (firstError) {
     firstError.scrollIntoView({ behavior: "smooth", block: "center" });
     firstError.focus();
@@ -526,11 +444,11 @@ function displayErrors(errors) {
  * Clear all validation errors
  */
 function clearErrors() {
-  document.querySelectorAll(".input-error").forEach((el) => {
+  $qa(".input-error").forEach((el) => {
     el.classList.remove("input-error");
   });
 
-  document.querySelectorAll(".input-hint.error").forEach((el) => {
+  $qa(".input-hint.error").forEach((el) => {
     el.textContent = "";
     el.classList.remove("error");
   });
@@ -544,7 +462,7 @@ function clearErrors() {
  * @param {string} label
  */
 export function updateStopTypeBadge(index, buildingType, label) {
-  const badge = document.getElementById(`stop-type-${index}`);
+  const badge = $(`stop-type-${index}`);
   if (badge) {
     badge.textContent = label;
     badge.className = `stop-type-badge type-${buildingType}`;
@@ -558,7 +476,7 @@ export function updateStopTypeBadge(index, buildingType, label) {
  * @param {string} label
  */
 export function updatePickupTypeBadge(buildingType, label) {
-  const badge = document.getElementById("pickup-type-badge");
+  const badge = $("pickup-type-badge");
   if (badge) {
     badge.textContent = label;
     badge.className = `pickup-type-badge type-${buildingType}`;
@@ -572,8 +490,8 @@ export function updatePickupTypeBadge(buildingType, label) {
  * @param {boolean} isLoading
  */
 export function setFormLoading(isLoading) {
-  const submitBtn = document.getElementById("submit-btn");
-  const form = document.getElementById("calculator-form");
+  const submitBtn = $("submit-btn");
+  const form = $("calculator-form");
 
   if (submitBtn) {
     submitBtn.disabled = isLoading;
@@ -583,7 +501,7 @@ export function setFormLoading(isLoading) {
   }
 
   if (form) {
-    const inputs = form.querySelectorAll("input, select, button");
+    const inputs = $qa("input, select, button", form);
     inputs.forEach((input) => {
       if (input.id !== "submit-btn") {
         input.disabled = isLoading;

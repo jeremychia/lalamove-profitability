@@ -5,47 +5,6 @@
  */
 
 /**
- * Create an address input group with label
- *
- * @param {Object} options
- * @param {string} options.id - Input ID
- * @param {string} options.label - Label text
- * @param {string} options.placeholder - Placeholder text
- * @param {boolean} [options.required=true]
- * @param {string} [options.icon] - Optional icon emoji
- * @returns {HTMLElement}
- */
-export function createAddressInput({
-  id,
-  label,
-  placeholder,
-  required = true,
-  icon = "📍",
-}) {
-  const group = document.createElement("div");
-  group.className = "form-group";
-
-  group.innerHTML = `
-    <label for="${id}">
-      <span class="icon">${icon}</span>
-      ${label}
-      ${required ? '<span class="required">*</span>' : ""}
-    </label>
-    <input
-      type="text"
-      id="${id}"
-      name="${id}"
-      placeholder="${placeholder}"
-      ${required ? "required" : ""}
-      autocomplete="off"
-    >
-    <div class="input-hint" id="${id}-hint"></div>
-  `;
-
-  return group;
-}
-
-/**
  * Create a stop input row with remove button
  *
  * @param {number} index - Stop number (1-based)
@@ -159,39 +118,6 @@ export function createMetricCard({
 }
 
 /**
- * Create a select dropdown
- *
- * @param {Object} options
- * @param {string} options.id
- * @param {string} options.label
- * @param {Array} options.options - Array of { value, label }
- * @param {string} [options.selected]
- * @returns {HTMLElement}
- */
-export function createSelect({ id, label, options, selected }) {
-  const group = document.createElement("div");
-  group.className = "form-group";
-
-  const optionsHtml = options
-    .map(
-      (opt) =>
-        `<option value="${opt.value}" ${
-          opt.value === selected ? "selected" : ""
-        }>${opt.label}</option>`,
-    )
-    .join("");
-
-  group.innerHTML = `
-    <label for="${id}">${label}</label>
-    <select id="${id}" name="${id}">
-      ${optionsHtml}
-    </select>
-  `;
-
-  return group;
-}
-
-/**
  * Create an insight/recommendation item
  *
  * @param {Object} insight
@@ -251,20 +177,4 @@ export function createErrorMessage(message, details) {
     </div>
   `;
   return div;
-}
-
-/**
- * Show/hide an element with animation
- *
- * @param {HTMLElement} element
- * @param {boolean} show
- */
-export function toggleVisibility(element, show) {
-  if (show) {
-    element.classList.remove("hidden");
-    element.classList.add("visible");
-  } else {
-    element.classList.remove("visible");
-    element.classList.add("hidden");
-  }
 }

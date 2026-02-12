@@ -104,7 +104,7 @@ export async function geocodeAddress(addressInput) {
  * @param {Object} result - OneMap reverse geocode result
  * @returns {string}
  */
-function formatReverseGeocodeAddress(result) {
+export function formatReverseGeocodeAddress(result) {
   const parts = [];
 
   if (result.BUILDINGNAME && result.BUILDINGNAME !== "NIL") {
@@ -126,6 +126,131 @@ function formatReverseGeocodeAddress(result) {
 }
 
 /**
+ * Building type keywords for detection
+ * Centralized to avoid duplication
+ */
+const BUILDING_KEYWORDS = {
+  hdb: ["HDB", "BLK", "BLOCK"],
+  condo: [
+    "CONDO",
+    "CONDOMINIUM",
+    "RESIDENCE",
+    "RESIDENCES",
+    "APARTMENT",
+    "SUITES",
+    "LODGE",
+    "MANSIONS",
+    "HEIGHTS",
+    "GARDENS",
+    "VILLA",
+    "VILLAS",
+    "COURT",
+  ],
+  office: [
+    "TOWER",
+    "TOWERS",
+    "BUILDING",
+    "CENTRE",
+    "CENTER",
+    "PLAZA",
+    "COMPLEX",
+    "HOUSE",
+    "PLACE",
+    "SQUARE",
+    "OFFICE",
+    "CORPORATE",
+    "BUSINESS",
+  ],
+  mall: [
+    "MALL",
+    "SHOPPING",
+    "RETAIL",
+    "CITY",
+    "JUNCTION",
+    "POINT",
+    "MARKET",
+    "MART",
+  ],
+  industrial: [
+    "INDUSTRIAL",
+    "FACTORY",
+    "WAREHOUSE",
+    "LOGISTICS",
+    "TECHPARK",
+    "TECH PARK",
+    "BIZPARK",
+    "BIZ HUB",
+    "IND PARK",
+  ],
+  landed: [
+    "TERRACE",
+    "DRIVE",
+    "AVENUE",
+    "ROAD",
+    "STREET",
+    "LANE",
+    "CLOSE",
+    "CRESCENT",
+    "WALK",
+  ],
+};
+
+/**
+ * Detect building type from text content
+ * Used by both address search and reverse geocode results
+ *
+ * @param {string} text - Combined text to search in (uppercase)
+ * @param {Object} [options] - Additional detection options
+ * @param {boolean} [options.hasBlock] - Whether location has a block number
+ * @param {boolean} [options.hasBuilding] - Whether location has a building name
+ * @returns {string} Building type key matching WAIT_TIMES config
+ */
+function detectBuildingTypeFromText(text, options = {}) {
+  const { hasBlock = false, hasBuilding = true } = options;
+
+  // HDB detection - most common in Singapore
+  if (
+    BUILDING_KEYWORDS.hdb.some((kw) => text.includes(kw)) ||
+    hasBlock ||
+    /BLK\s*\d+/.test(text)
+  ) {
+    return "hdb";
+  }
+
+  // Condo/Private residential detection
+  if (BUILDING_KEYWORDS.condo.some((kw) => text.includes(kw))) {
+    return "condo";
+  }
+
+  // Office/Commercial building detection
+  if (BUILDING_KEYWORDS.office.some((kw) => text.includes(kw))) {
+    return "office";
+  }
+
+  // Mall/Retail detection
+  if (BUILDING_KEYWORDS.mall.some((kw) => text.includes(kw))) {
+    return "mall";
+  }
+
+  // Industrial detection
+  if (BUILDING_KEYWORDS.industrial.some((kw) => text.includes(kw))) {
+    return "industrial";
+  }
+
+  // Landed property detection
+  if (
+    !text.includes("BLK") &&
+    !text.includes("#") &&
+    !hasBuilding &&
+    BUILDING_KEYWORDS.landed.some((kw) => text.includes(kw))
+  ) {
+    return "landed";
+  }
+
+  return "default";
+}
+
+/**
  * Detect building type from reverse geocode result
  * @param {Object} result - OneMap reverse geocode result
  * @returns {string}
@@ -135,50 +260,10 @@ function detectBuildingTypeFromReverse(result) {
   const road = (result.ROAD || "").toUpperCase();
   const combined = `${building} ${road}`;
 
-  // HDB detection
-  if (combined.includes("HDB") || result.BLOCK) {
-    return "hdb";
-  }
-
-  // Condo detection
-  if (
-    combined.includes("CONDO") ||
-    combined.includes("RESIDENCE") ||
-    combined.includes("TOWER") ||
-    combined.includes("HEIGHTS")
-  ) {
-    return "condo";
-  }
-
-  // Mall detection
-  if (
-    combined.includes("MALL") ||
-    combined.includes("SHOPPING") ||
-    combined.includes("PLAZA")
-  ) {
-    return "mall";
-  }
-
-  // Office detection
-  if (
-    combined.includes("OFFICE") ||
-    combined.includes("BUILDING") ||
-    combined.includes("CENTRE") ||
-    combined.includes("CENTER")
-  ) {
-    return "office";
-  }
-
-  // Industrial detection
-  if (
-    combined.includes("INDUSTRIAL") ||
-    combined.includes("TECHPARK") ||
-    combined.includes("WAREHOUSE")
-  ) {
-    return "industrial";
-  }
-
-  return "default";
+  return detectBuildingTypeFromText(combined, {
+    hasBlock: !!result.BLOCK,
+    hasBuilding: building.length > 2,
+  });
 }
 
 /**
@@ -207,134 +292,8 @@ function detectBuildingType(locationData) {
   const address = (locationData.ADDRESS || "").toUpperCase();
   const combined = `${building} ${searchVal} ${address}`;
 
-  // HDB detection - most common in Singapore
-  if (
-    combined.includes("HDB") ||
-    /BLK\s*\d+/.test(combined) ||
-    combined.includes("BLOCK")
-  ) {
-    return "hdb";
-  }
-
-  // Condo/Private residential detection
-  const condoKeywords = [
-    "CONDO",
-    "CONDOMINIUM",
-    "RESIDENCE",
-    "RESIDENCES",
-    "APARTMENT",
-    "SUITES",
-    "LODGE",
-    "MANSIONS",
-    "HEIGHTS",
-    "GARDENS",
-    "VILLA",
-    "VILLAS",
-    "COURT",
-  ];
-  if (condoKeywords.some((kw) => combined.includes(kw))) {
-    return "condo";
-  }
-
-  // Office/Commercial building detection
-  const officeKeywords = [
-    "TOWER",
-    "TOWERS",
-    "BUILDING",
-    "CENTRE",
-    "CENTER",
-    "PLAZA",
-    "COMPLEX",
-    "HOUSE",
-    "PLACE",
-    "SQUARE",
-    "OFFICE",
-    "CORPORATE",
-    "BUSINESS",
-  ];
-  if (officeKeywords.some((kw) => combined.includes(kw))) {
-    return "office";
-  }
-
-  // Mall/Retail detection
-  const mallKeywords = [
-    "MALL",
-    "SHOPPING",
-    "RETAIL",
-    "CITY",
-    "JUNCTION",
-    "POINT",
-    "MARKET",
-    "MART",
-  ];
-  if (mallKeywords.some((kw) => combined.includes(kw))) {
-    return "mall";
-  }
-
-  // Industrial detection
-  const industrialKeywords = [
-    "INDUSTRIAL",
-    "FACTORY",
-    "WAREHOUSE",
-    "LOGISTICS",
-    "TECHPARK",
-    "TECH PARK",
-    "BIZPARK",
-    "BIZ HUB",
-    "INDUSTRIAL PARK",
-    "IND PARK",
-  ];
-  if (industrialKeywords.some((kw) => combined.includes(kw))) {
-    return "industrial";
-  }
-
-  // Landed property detection (specific road patterns)
-  const landedKeywords = [
-    "TERRACE",
-    "DRIVE",
-    "AVENUE",
-    "ROAD",
-    "STREET",
-    "LANE",
-    "CLOSE",
-    "CRESCENT",
-    "WALK",
-  ];
-  // Check if it looks like a landed address (number + road name, no block)
-  if (
-    !combined.includes("BLK") &&
-    !combined.includes("#") &&
-    landedKeywords.some((kw) => combined.includes(kw))
-  ) {
-    // Additional check: if no building name, likely landed
-    if (!building || building.length < 3) {
-      return "landed";
-    }
-  }
-
-  return "default";
-}
-
-/**
- * Get suggestions for an address input (autocomplete)
- *
- * @param {string} partialAddress - Partial address input
- * @param {number} limit - Max number of suggestions
- * @returns {Promise<Array>} Array of suggestion objects
- */
-export async function getAddressSuggestions(partialAddress, limit = 5) {
-  if (!partialAddress || partialAddress.length < 2) {
-    return [];
-  }
-
-  try {
-    const results = await searchAddress(partialAddress);
-    return results.slice(0, limit).map((r) => ({
-      address: r.ADDRESS || r.SEARCHVAL,
-      postalCode: r.POSTAL,
-      building: r.BUILDING,
-    }));
-  } catch {
-    return [];
-  }
+  return detectBuildingTypeFromText(combined, {
+    hasBlock: /BLK\s*\d+/.test(combined),
+    hasBuilding: building.length >= 3,
+  });
 }

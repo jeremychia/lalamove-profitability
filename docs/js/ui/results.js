@@ -21,6 +21,7 @@ import {
 } from "../utils/format.js";
 import { getInsights } from "../services/profitability.js";
 import { PROFIT_THRESHOLDS, CONFIG } from "../config.js";
+import { $, toggleHidden, createElement } from "../utils/dom.js";
 
 /**
  * Create a Google Maps directions URL from coordinates
@@ -56,12 +57,13 @@ function buildGoogleMapsUrl(coordinates) {
  * @returns {HTMLElement}
  */
 function createGoogleMapsLink(coordinates) {
-  const link = document.createElement("a");
+  const link = createElement("a", {
+    className: "maps-link",
+    innerHTML: `<span class="maps-icon">🗺️</span> Open in Google Maps`,
+  });
   link.href = buildGoogleMapsUrl(coordinates);
   link.target = "_blank";
   link.rel = "noopener noreferrer";
-  link.className = "maps-link";
-  link.innerHTML = `<span class="maps-icon">🗺️</span> Open in Google Maps`;
   return link;
 }
 
@@ -71,11 +73,11 @@ function createGoogleMapsLink(coordinates) {
  * @param {Object} result - Complete calculation result
  */
 export function renderResults(result) {
-  const container = document.getElementById("results-container");
+  const container = $("results-container");
   if (!container) return;
 
   container.innerHTML = "";
-  container.classList.remove("hidden");
+  toggleHidden(container, true);
 
   // Rating header
   const ratingHeader = createRatingHeader(result.profitability);
@@ -451,11 +453,11 @@ function createInsightsSection(profitability) {
  * @param {string} [message='Calculating...']
  */
 export function showLoading(message = "Calculating routes...") {
-  const container = document.getElementById("results-container");
+  const container = $("results-container");
   if (!container) return;
 
   container.innerHTML = "";
-  container.classList.remove("hidden");
+  toggleHidden(container, true);
   container.appendChild(createLoader(message));
 }
 
@@ -465,11 +467,11 @@ export function showLoading(message = "Calculating routes...") {
  * @param {Error|string} error
  */
 export function renderError(error) {
-  const container = document.getElementById("results-container");
+  const container = $("results-container");
   if (!container) return;
 
   container.innerHTML = "";
-  container.classList.remove("hidden");
+  toggleHidden(container, true);
 
   const message = error instanceof Error ? error.message : String(error);
   const details = error instanceof Error ? error.stack : null;
@@ -477,16 +479,17 @@ export function renderError(error) {
   container.appendChild(createErrorMessage(message, details));
 
   // Add retry hint
-  const hint = document.createElement("div");
-  hint.className = "error-hint";
-  hint.innerHTML = `
+  const hint = createElement("div", {
+    className: "error-hint",
+    innerHTML: `
     <p>Tips:</p>
     <ul>
       <li>Check that all addresses are valid Singapore addresses or postal codes</li>
       <li>Make sure you have an internet connection</li>
       <li>Try adding your OneMap API token in settings for better accuracy</li>
     </ul>
-  `;
+  `,
+  });
   container.appendChild(hint);
 }
 
@@ -494,9 +497,9 @@ export function renderError(error) {
  * Clear results container
  */
 export function clearResults() {
-  const container = document.getElementById("results-container");
+  const container = $("results-container");
   if (container) {
     container.innerHTML = "";
-    container.classList.add("hidden");
+    toggleHidden(container, false);
   }
 }

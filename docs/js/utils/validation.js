@@ -13,26 +13,6 @@ import { CONFIG } from "../config.js";
  */
 
 /**
- * Validate a Singapore postal code
- *
- * @param {string} postalCode
- * @returns {ValidationResult}
- */
-export function validatePostalCode(postalCode) {
-  if (!postalCode || typeof postalCode !== "string") {
-    return { isValid: false, error: "Postal code is required" };
-  }
-
-  const cleaned = postalCode.trim();
-
-  if (!/^\d{6}$/.test(cleaned)) {
-    return { isValid: false, error: "Postal code must be 6 digits" };
-  }
-
-  return { isValid: true, error: null };
-}
-
-/**
  * Validate an address input (postal code or address string)
  *
  * @param {string} input

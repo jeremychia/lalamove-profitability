@@ -23,6 +23,7 @@ import {
   clearResults,
 } from "./ui/results.js";
 import { getStoredToken, getValidToken, isTokenExpired } from "./api/onemap.js";
+import { $, $q, toggleHidden } from "./utils/dom.js";
 
 /**
  * Application state
@@ -64,27 +65,24 @@ export async function init() {
  * @param {'checking'|'connected'|'disconnected'} status
  */
 function updateApiStatus(status) {
-  const statusEl = document.getElementById("api-status");
+  const statusEl = $("api-status");
   if (!statusEl) return;
 
-  const iconEl = statusEl.querySelector(".status-icon");
-  const textEl = statusEl.querySelector(".status-text");
+  const iconEl = $q(".status-icon", statusEl);
+  const textEl = $q(".status-text", statusEl);
 
   statusEl.className = `api-status ${status}`;
 
-  switch (status) {
-    case "checking":
-      iconEl.textContent = "⏳";
-      textEl.textContent = "Checking OneMap API...";
-      break;
-    case "connected":
-      iconEl.textContent = "✅";
-      textEl.textContent = "OneMap API connected";
-      break;
-    case "disconnected":
-      iconEl.textContent = "⚠️";
-      textEl.textContent = "No API token (estimates only)";
-      break;
+  const statusConfig = {
+    checking: { icon: "⏳", text: "Checking OneMap API..." },
+    connected: { icon: "✅", text: "OneMap API connected" },
+    disconnected: { icon: "⚠️", text: "No API token (estimates only)" },
+  };
+
+  const config = statusConfig[status];
+  if (config && iconEl && textEl) {
+    iconEl.textContent = config.icon;
+    textEl.textContent = config.text;
   }
 }
 
@@ -92,20 +90,14 @@ function updateApiStatus(status) {
  * Show a reminder to add API token
  */
 function showTokenReminder() {
-  const reminder = document.getElementById("token-reminder");
-  if (reminder) {
-    reminder.classList.remove("hidden");
-  }
+  toggleHidden("token-reminder", true);
 }
 
 /**
  * Hide the token reminder
  */
 function hideTokenReminder() {
-  const reminder = document.getElementById("token-reminder");
-  if (reminder) {
-    reminder.classList.add("hidden");
-  }
+  toggleHidden("token-reminder", false);
 }
 
 /**
