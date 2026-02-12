@@ -438,7 +438,7 @@ export function updateStopTypeBadge(index, buildingType, label) {
 export function updatePickupTypeBadge(buildingType, label) {
   const badge = document.getElementById("pickup-type-badge");
   if (badge) {
-    badge.textContent = `📍 ${label}`;
+    badge.textContent = label;
     badge.className = `pickup-type-badge type-${buildingType}`;
     badge.classList.remove("hidden");
   }

@@ -406,16 +406,30 @@ input.input-error:focus {
   color: #374151;
 }
 
+/* Input with inline badge */
+.input-with-badge {
+  position: relative;
+}
+
+.input-with-badge input {
+  width: 100%;
+  padding-right: 70px; /* Make room for badge */
+}
+
 /* Pickup Type Badge */
 .pickup-type-badge {
-  display: inline-block;
-  font-size: 0.75rem;
-  padding: 2px 8px;
+  position: absolute;
+  right: var(--spacing-sm);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.65rem;
+  padding: 2px 6px;
   border-radius: var(--radius-sm);
   background-color: var(--color-bg-light);
   color: var(--color-text-light);
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  pointer-events: none;
 }
 
 .pickup-type-badge.hidden {
