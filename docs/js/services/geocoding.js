@@ -4,7 +4,7 @@
  * @module services/geocoding
  */
 
-import { searchAddress } from "../api/onemap.js";
+import { searchAddress, reverseGeocode } from "../api/onemap.js";
 
 /**
  * @typedef {Object} GeocodedLocation
@@ -18,12 +18,73 @@ import { searchAddress } from "../api/onemap.js";
  */
 
 /**
+ * Check if input looks like coordinates (lat, lng format)
+ * @param {string} input
+ * @returns {{isCoordinates: boolean, lat?: number, lng?: number}}
+ */
+function parseCoordinates(input) {
+  const trimmed = input.trim();
+
+  // Match patterns like "1.288336, 103.807802" or "1.288336,103.807802"
+  const coordPattern = /^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/;
+  const match = trimmed.match(coordPattern);
+
+  if (match) {
+    const lat = parseFloat(match[1]);
+    const lng = parseFloat(match[2]);
+
+    // Validate Singapore bounds (roughly)
+    if (lat >= 1.1 && lat <= 1.5 && lng >= 103.6 && lng <= 104.1) {
+      return { isCoordinates: true, lat, lng };
+    }
+  }
+
+  return { isCoordinates: false };
+}
+
+/**
  * Geocode an address to coordinates with building type detection
+ * Handles both address strings and coordinate input
  *
- * @param {string} addressInput - Address, postal code, or building name
+ * @param {string} addressInput - Address, postal code, building name, or coordinates
  * @returns {Promise<GeocodedLocation>}
  */
 export async function geocodeAddress(addressInput) {
+  const coordCheck = parseCoordinates(addressInput);
+
+  // If input is coordinates, use reverse geocoding
+  if (coordCheck.isCoordinates) {
+    try {
+      const reverseResult = await reverseGeocode(
+        coordCheck.lat,
+        coordCheck.lng,
+      );
+
+      return {
+        lat: coordCheck.lat,
+        lng: coordCheck.lng,
+        address: formatReverseGeocodeAddress(reverseResult),
+        postalCode: reverseResult.POSTALCODE || "",
+        buildingType: detectBuildingTypeFromReverse(reverseResult),
+        buildingName: reverseResult.BUILDINGNAME || "",
+        raw: reverseResult,
+      };
+    } catch (error) {
+      // If reverse geocode fails, return coordinates with defaults
+      console.warn("Reverse geocode failed, using coordinates:", error.message);
+      return {
+        lat: coordCheck.lat,
+        lng: coordCheck.lng,
+        address: `${coordCheck.lat.toFixed(6)}, ${coordCheck.lng.toFixed(6)}`,
+        postalCode: "",
+        buildingType: "default",
+        buildingName: "",
+        raw: null,
+      };
+    }
+  }
+
+  // Standard address search
   const results = await searchAddress(addressInput.trim());
   const best = results[0];
 
@@ -36,6 +97,88 @@ export async function geocodeAddress(addressInput) {
     buildingName: best.BUILDING || "",
     raw: best,
   };
+}
+
+/**
+ * Format reverse geocode result into readable address
+ * @param {Object} result - OneMap reverse geocode result
+ * @returns {string}
+ */
+function formatReverseGeocodeAddress(result) {
+  const parts = [];
+
+  if (result.BUILDINGNAME && result.BUILDINGNAME !== "NIL") {
+    parts.push(result.BUILDINGNAME);
+  }
+  if (result.BLOCK && result.BLOCK !== "NIL") {
+    parts.push(`Blk ${result.BLOCK}`);
+  }
+  if (result.ROAD && result.ROAD !== "NIL") {
+    parts.push(result.ROAD);
+  }
+  if (result.POSTALCODE && result.POSTALCODE !== "NIL") {
+    parts.push(`Singapore ${result.POSTALCODE}`);
+  }
+
+  return parts.length > 0
+    ? parts.join(", ")
+    : result.ADDRESS || "Unknown Location";
+}
+
+/**
+ * Detect building type from reverse geocode result
+ * @param {Object} result - OneMap reverse geocode result
+ * @returns {string}
+ */
+function detectBuildingTypeFromReverse(result) {
+  const building = (result.BUILDINGNAME || "").toUpperCase();
+  const road = (result.ROAD || "").toUpperCase();
+  const combined = `${building} ${road}`;
+
+  // HDB detection
+  if (combined.includes("HDB") || result.BLOCK) {
+    return "hdb";
+  }
+
+  // Condo detection
+  if (
+    combined.includes("CONDO") ||
+    combined.includes("RESIDENCE") ||
+    combined.includes("TOWER") ||
+    combined.includes("HEIGHTS")
+  ) {
+    return "condo";
+  }
+
+  // Mall detection
+  if (
+    combined.includes("MALL") ||
+    combined.includes("SHOPPING") ||
+    combined.includes("PLAZA")
+  ) {
+    return "mall";
+  }
+
+  // Office detection
+  if (
+    combined.includes("OFFICE") ||
+    combined.includes("BUILDING") ||
+    combined.includes("CENTRE") ||
+    combined.includes("CENTER")
+  ) {
+    return "office";
+  }
+
+  // Industrial detection
+  if (
+    combined.includes("INDUSTRIAL") ||
+    combined.includes("TECHPARK") ||
+    combined.includes("WAREHOUSE")
+  ) {
+    return "industrial";
+  }
+
+  return "default";
 }
 
 /**
