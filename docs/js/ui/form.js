@@ -12,7 +12,7 @@ import {
 } from "../config.js";
 import { createStopInput } from "./components.js";
 import { validateFormData, parseNumericInput } from "../utils/validation.js";
-import { storeToken, getStoredToken } from "../api/onemap.js";
+import { storeToken, getStoredToken, reverseGeocode } from "../api/onemap.js";
 
 let stopCount = 1;
 let onSubmitCallback = null;
@@ -66,6 +66,12 @@ export function initForm({ onSubmit }) {
   const settingsToggle = document.getElementById("settings-toggle");
   if (settingsToggle) {
     settingsToggle.addEventListener("click", toggleSettings);
+  }
+
+  // Setup geolocation button
+  const locationBtn = document.getElementById("use-my-location-btn");
+  if (locationBtn) {
+    locationBtn.addEventListener("click", handleUseMyLocation);
   }
 }
 
@@ -288,6 +294,122 @@ function toggleSettings() {
   const isHidden = panel.classList.contains("hidden");
   panel.classList.toggle("hidden");
   toggle.textContent = isHidden ? "⚙️ Hide Settings" : "⚙️ Settings";
+}
+
+/**
+ * Handle "Use my location" button click
+ * Gets current GPS position and reverse geocodes to address
+ */
+async function handleUseMyLocation() {
+  const btn = document.getElementById("use-my-location-btn");
+  const input = document.getElementById("current-location");
+  const hint = document.getElementById("current-location-hint");
+
+  if (!btn || !input) return;
+
+  // Check if geolocation is supported
+  if (!navigator.geolocation) {
+    showHint(hint, "Geolocation is not supported by your browser", "error");
+    return;
+  }
+
+  // Show loading state
+  btn.classList.add("loading");
+  btn.textContent = "⏳";
+  showHint(hint, "Getting your location...");
+
+  try {
+    // Get current position
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000, // Cache for 1 minute
+      });
+    });
+
+    const { latitude, longitude } = position.coords;
+
+    // Reverse geocode to get address
+    showHint(hint, "Looking up address...");
+
+    try {
+      const location = await reverseGeocode(latitude, longitude);
+
+      // Build a readable address
+      const address = formatReverseGeocodeResult(location);
+      input.value = address;
+
+      showHint(hint, `📍 Location found: ${address}`, "success");
+    } catch (geoError) {
+      // If reverse geocode fails, just use coordinates
+      input.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+      showHint(hint, "Using GPS coordinates (address lookup unavailable)");
+    }
+  } catch (error) {
+    let message = "Could not get your location";
+
+    if (error.code === 1) {
+      message = "Location access denied. Please enable location permissions.";
+    } else if (error.code === 2) {
+      message = "Location unavailable. Please try again.";
+    } else if (error.code === 3) {
+      message = "Location request timed out. Please try again.";
+    }
+
+    showHint(hint, message, "error");
+  } finally {
+    // Reset button state
+    btn.classList.remove("loading");
+    btn.textContent = "📍";
+  }
+}
+
+/**
+ * Format reverse geocode result into a readable address
+ * @param {Object} location - OneMap reverse geocode result
+ * @returns {string}
+ */
+function formatReverseGeocodeResult(location) {
+  // Try to build the most useful address string
+  const parts = [];
+
+  if (location.BUILDINGNAME && location.BUILDINGNAME !== "NIL") {
+    parts.push(location.BUILDINGNAME);
+  }
+
+  if (location.BLOCK && location.BLOCK !== "NIL") {
+    parts.push(`Blk ${location.BLOCK}`);
+  }
+
+  if (location.ROAD && location.ROAD !== "NIL") {
+    parts.push(location.ROAD);
+  }
+
+  if (location.POSTALCODE && location.POSTALCODE !== "NIL") {
+    parts.push(`S(${location.POSTALCODE})`);
+  }
+
+  return parts.length > 0 ? parts.join(", ") : location.ADDRESS || "Unknown";
+}
+
+/**
+ * Show a hint message
+ * @param {HTMLElement} hintEl
+ * @param {string} message
+ * @param {string} [type] - 'error', 'success', or default
+ */
+function showHint(hintEl, message, type = "") {
+  if (!hintEl) return;
+
+  hintEl.textContent = message;
+  hintEl.classList.remove("error", "success");
+
+  if (type === "error") {
+    hintEl.classList.add("error");
+  } else if (type === "success") {
+    hintEl.classList.add("success");
+  }
 }
 
 /**

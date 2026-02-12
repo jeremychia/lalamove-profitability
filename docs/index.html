@@ -58,14 +58,24 @@
                 Your Current Location
                 <span class="required">*</span>
               </label>
-              <input
-                type="text"
-                id="current-location"
-                name="current-location"
-                placeholder="Enter postal code or address (e.g., 639798)"
-                required
-                autocomplete="off"
-              />
+              <div class="input-with-button">
+                <input
+                  type="text"
+                  id="current-location"
+                  name="current-location"
+                  placeholder="Enter postal code or address (e.g., 639798)"
+                  required
+                  autocomplete="off"
+                />
+                <button
+                  type="button"
+                  id="use-my-location-btn"
+                  class="btn-location"
+                  title="Use my current location"
+                >
+                  📍
+                </button>
+              </div>
               <div class="input-hint" id="current-location-hint"></div>
             </div>
 

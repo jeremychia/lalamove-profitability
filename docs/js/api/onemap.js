@@ -286,3 +286,43 @@ function toRad(deg) {
 export function isTokenFormatValid(token) {
   return typeof token === "string" && token.length > 20;
 }
+
+/**
+ * Reverse geocode coordinates to get address
+ * Uses OneMap's reverse geocoding endpoint
+ *
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @returns {Promise<Object>} Location data with address
+ * @throws {OneMapError} If reverse geocoding fails
+ */
+export async function reverseGeocode(lat, lng) {
+  const url = new URL(`${baseUrl}/public/revgeocodexy`);
+  url.searchParams.set("location", `${lat},${lng}`);
+  url.searchParams.set("buffer", "50"); // 50m buffer for nearby addresses
+  url.searchParams.set("addressType", "all");
+  url.searchParams.set("otherFeatures", "Y");
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new OneMapError(
+        `Reverse geocode failed: ${response.statusText}`,
+        response.status,
+      );
+    }
+
+    const data = await response.json();
+
+    if (!data.GeocodeInfo || data.GeocodeInfo.length === 0) {
+      throw new OneMapError("No address found for this location", 404);
+    }
+
+    // Return the first (closest) result
+    return data.GeocodeInfo[0];
+  } catch (error) {
+    if (error instanceof OneMapError) throw error;
+    throw new OneMapError(`Network error: ${error.message}`);
+  }
+}
