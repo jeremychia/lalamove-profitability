@@ -53,9 +53,16 @@ jobs:
             PASSWORD_SET=true
           fi
 
+          if [ -z "${{ secrets.GOOGLE_SHEETS_URL }}" ]; then
+            echo "ℹ️  GOOGLE_SHEETS_URL secret is NOT set (optional)"
+            echo "::notice::GOOGLE_SHEETS_URL secret is missing. Save to Sheets feature will be disabled."
+          else
+            echo "✅ GOOGLE_SHEETS_URL secret is set"
+          fi
+
           if [ "$EMAIL_SET" = true ] && [ "$PASSWORD_SET" = true ]; then
             echo ""
-            echo "🎉 All secrets configured! Auto-token fetch will be enabled."
+            echo "🎉 All required secrets configured! Auto-token fetch will be enabled."
           else
             echo ""
             echo "⚠️  Some secrets are missing. The app will still work but users will need to manually enter their API token."
@@ -72,6 +79,9 @@ jobs:
             onemap: {
               email: '${{ secrets.ONEMAP_EMAIL }}',
               password: '${{ secrets.ONEMAP_PASSWORD }}'
+            },
+            googleSheets: {
+              webAppUrl: '${{ secrets.GOOGLE_SHEETS_URL }}'
             }
           };
           EOF

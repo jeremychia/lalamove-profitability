@@ -21,6 +21,8 @@ import {
   renderError,
   showLoading,
   clearResults,
+  initResultsModule,
+  setFormData,
 } from "./ui/results.js";
 import { getStoredToken, getValidToken, isTokenExpired } from "./api/onemap.js";
 import { $, $q, toggleHidden } from "./utils/dom.js";
@@ -43,6 +45,9 @@ export async function init() {
   initForm({
     onSubmit: handleCalculate,
   });
+
+  // Initialize results module (includes sheets service)
+  await initResultsModule();
 
   // Try to get a valid token (will auto-fetch if secrets.js exists)
   updateApiStatus("checking");
@@ -114,6 +119,9 @@ async function handleCalculate(formData) {
   state.isCalculating = true;
   setFormLoading(true);
   showLoading("Geocoding addresses...");
+
+  // Store form data for saving later
+  setFormData(formData);
 
   try {
     const result = await analyzeOrder(formData);

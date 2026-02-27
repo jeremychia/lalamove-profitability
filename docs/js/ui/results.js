@@ -22,6 +22,31 @@ import {
 import { getInsights } from "../services/profitability.js";
 import { PROFIT_THRESHOLDS, CONFIG } from "../config.js";
 import { $, toggleHidden, createElement } from "../utils/dom.js";
+import {
+  isSheetsEnabled,
+  saveToSheets,
+  showToast,
+  initSheetsService,
+} from "../services/sheets.js";
+
+// Store the last result and form data for saving
+let lastResultData = null;
+let lastFormData = null;
+
+/**
+ * Initialize sheets service (called from main.js)
+ */
+export async function initResultsModule() {
+  await initSheetsService();
+}
+
+/**
+ * Store form data for later use when saving
+ * @param {Object} formData
+ */
+export function setFormData(formData) {
+  lastFormData = formData;
+}
 
 /**
  * Create a Google Maps directions URL from coordinates
@@ -76,6 +101,9 @@ export function renderResults(result) {
   const container = $("results-container");
   if (!container) return;
 
+  // Store result for saving later
+  lastResultData = result;
+
   container.innerHTML = "";
   toggleHidden(container, true);
 
@@ -102,6 +130,12 @@ export function renderResults(result) {
   // Insights and recommendations
   const insightsSection = createInsightsSection(result.profitability);
   container.appendChild(insightsSection);
+
+  // Save to Sheets button (if configured)
+  if (isSheetsEnabled()) {
+    const saveButton = createSaveButton();
+    container.appendChild(saveButton);
+  }
 
   // Scroll results into view
   container.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -501,5 +535,159 @@ export function clearResults() {
   if (container) {
     container.innerHTML = "";
     toggleHidden(container, false);
+  }
+}
+
+/**
+ * Create the Save to Sheets button
+ * @returns {HTMLElement}
+ */
+function createSaveButton() {
+  const button = createElement("button", {
+    className: "save-results-btn",
+    innerHTML: `
+      <span class="btn-icon">📊</span>
+      <span>Save to Google Sheets</span>
+    `,
+  });
+  button.type = "button";
+  button.addEventListener("click", openSaveModal);
+  return button;
+}
+
+/**
+ * Open the save modal
+ */
+function openSaveModal() {
+  const modal = $("save-modal");
+  if (!modal) return;
+
+  // Set default time to now
+  const timeInput = $("job-posted-time");
+  if (timeInput) {
+    const now = new Date();
+    // Format for datetime-local input (YYYY-MM-DDTHH:MM)
+    const localISOTime = new Date(
+      now.getTime() - now.getTimezoneOffset() * 60000,
+    )
+      .toISOString()
+      .slice(0, 16);
+    timeInput.value = localISOTime;
+  }
+
+  // Reset surcharge to 0
+  const surchargeInput = $("surcharge-amount");
+  if (surchargeInput) {
+    surchargeInput.value = "0";
+  }
+
+  // Clear notes
+  const notesInput = $("save-notes");
+  if (notesInput) {
+    notesInput.value = "";
+  }
+
+  // Show modal
+  toggleHidden(modal, true);
+
+  // Set up event listeners
+  setupModalListeners();
+}
+
+/**
+ * Close the save modal
+ */
+function closeSaveModal() {
+  const modal = $("save-modal");
+  if (modal) {
+    toggleHidden(modal, false);
+  }
+}
+
+/**
+ * Set up modal event listeners
+ */
+function setupModalListeners() {
+  const cancelBtn = $("cancel-save-btn");
+  const saveForm = $("save-form");
+  const backdrop = document.querySelector("#save-modal .modal-backdrop");
+
+  // Cancel button
+  if (cancelBtn) {
+    cancelBtn.onclick = closeSaveModal;
+  }
+
+  // Click on backdrop to close
+  if (backdrop) {
+    backdrop.onclick = closeSaveModal;
+  }
+
+  // Form submission
+  if (saveForm) {
+    saveForm.onsubmit = handleSaveSubmit;
+  }
+
+  // Escape key to close
+  document.addEventListener("keydown", handleEscapeKey);
+}
+
+/**
+ * Handle escape key press
+ * @param {KeyboardEvent} e
+ */
+function handleEscapeKey(e) {
+  if (e.key === "Escape") {
+    closeSaveModal();
+    document.removeEventListener("keydown", handleEscapeKey);
+  }
+}
+
+/**
+ * Handle save form submission
+ * @param {Event} e
+ */
+async function handleSaveSubmit(e) {
+  e.preventDefault();
+
+  if (!lastResultData) {
+    showToast("No calculation data to save", "error");
+    return;
+  }
+
+  const jobPostedTime = $("job-posted-time")?.value;
+  const surchargeAmount = parseFloat($("surcharge-amount")?.value) || 0;
+  const notes = $("save-notes")?.value || "";
+
+  if (!jobPostedTime) {
+    showToast("Please enter when the job was posted", "error");
+    return;
+  }
+
+  // Disable submit button while saving
+  const submitBtn = $("confirm-save-btn");
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = "⏳ Saving...";
+  }
+
+  const result = await saveToSheets({
+    result: lastResultData,
+    formData: lastFormData || {},
+    jobPostedTime,
+    surchargeAmount,
+    notes,
+  });
+
+  // Re-enable button
+  if (submitBtn) {
+    submitBtn.disabled = false;
+    submitBtn.innerHTML = "📊 Save to Sheets";
+  }
+
+  if (result.success) {
+    showToast("Order data saved successfully!", "success");
+    closeSaveModal();
+  } else {
+    showToast(result.error || "Failed to save data", "error");
   }
 }
