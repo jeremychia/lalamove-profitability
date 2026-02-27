@@ -140,10 +140,34 @@ function buildSaveData({
 }) {
   const { profitability, route, fuel, waitTime, locations, inputs } = result;
 
-  // Build stops string
+  // Build stops string (simple display format)
   const stopsDisplay = locations.stops
     .map((s, i) => `${i + 1}. ${s.address || s.searchTerm}`)
     .join(" | ");
+
+  // Build detailed stops metadata as JSON
+  const stopsMetadata = locations.stops.map((stop, index) => {
+    // Find the corresponding route leg (legs 1+ are delivery legs)
+    const legIndex = index + 1; // Leg 0 is to pickup, so stop 0 = leg 1
+    const routeLeg = route.legs[legIndex] || {};
+
+    // Find the corresponding wait time breakdown
+    const waitBreakdown = waitTime.breakdown?.[index] || {};
+
+    return {
+      stopNumber: index + 1,
+      address: stop.address || stop.searchTerm || "",
+      searchTerm: stop.searchTerm || "",
+      buildingType: stop.buildingType || "unknown",
+      lat: stop.lat || null,
+      lng: stop.lng || null,
+      distanceFromPreviousKm: routeLeg.distanceKm || 0,
+      travelFromPreviousMinutes: routeLeg.timeMinutes || 0,
+      waitTimeMinutes: waitBreakdown.minutes || 0,
+      waitTimeLabel: waitBreakdown.label || "",
+      isWaitOverride: waitBreakdown.isOverride || false,
+    };
+  });
 
   // Calculate additional stop fee ($3 per additional stop beyond the first)
   const additionalStops = Math.max(0, locations.stops.length - 1);
@@ -161,6 +185,41 @@ function buildSaveData({
   // Total surcharges = additional stop fee + priority fee + other surcharges
   const totalSurcharges = additionalStopFee + priorityFee + surchargeAmount;
 
+  // Split distance and time between pickup leg and job legs
+  // Leg 0 = current location to pickup
+  // Legs 1+ = pickup to delivery stops (the actual job)
+  const pickupLeg = route.legs[0] || { distanceKm: 0, timeMinutes: 0 };
+  const jobLegs = route.legs.slice(1);
+
+  const distanceToPickupKm = pickupLeg.distanceKm;
+  const travelToPickupMinutes = pickupLeg.timeMinutes;
+
+  const jobDistanceKm = jobLegs.reduce((sum, leg) => sum + leg.distanceKm, 0);
+  const jobTravelMinutes = jobLegs.reduce(
+    (sum, leg) => sum + leg.timeMinutes,
+    0,
+  );
+
+  // Job-only calculations (as if you were already at the pickup location)
+  // Job-only fuel cost = proportional to job distance only
+  const totalDistanceKm = route.totalDistanceKm || 1; // Avoid division by zero
+  const jobFuelCost =
+    totalDistanceKm > 0
+      ? (jobDistanceKm / totalDistanceKm) * fuel.cost
+      : fuel.cost;
+
+  // Job-only net profit = net fare minus job-only fuel cost
+  const jobOnlyNetProfit = fareBreakdown.netFare - jobFuelCost;
+
+  // Job-only time = job travel time + pickup wait + delivery waits (excludes travel to pickup)
+  const jobOnlyTimeMinutes =
+    jobTravelMinutes + waitTime.pickupWait + waitTime.total;
+
+  // Job-only profit per hour (if you were already at the pickup location)
+  // This will equal profitPerHour when distanceToPickup = 0 and travelToPickup = 0
+  const jobOnlyProfitPerHour =
+    jobOnlyTimeMinutes > 0 ? (jobOnlyNetProfit / jobOnlyTimeMinutes) * 60 : 0;
+
   return {
     // Identifiers
     id: generateId(),
@@ -174,6 +233,7 @@ function buildSaveData({
     pickupAddress: locations.pickup.address || locations.pickup.searchTerm,
     pickupBuildingType: locations.pickup.buildingType || "unknown",
     deliveryStops: stopsDisplay,
+    deliveryStopsMetadata: stopsMetadata,
     stopsCount: locations.stops.length,
 
     // Fare type
@@ -200,16 +260,28 @@ function buildSaveData({
     fuelCost: fuel.cost,
     fuelLitres: fuel.litresUsed,
 
-    // Distance & Time
+    // Distance - Split between pickup and job
+    distanceToPickupKm: distanceToPickupKm,
+    jobDistanceKm: jobDistanceKm,
     totalDistanceKm: route.totalDistanceKm,
+
+    // Time - Split between pickup travel and job
+    travelToPickupMinutes: travelToPickupMinutes,
+    jobTravelMinutes: jobTravelMinutes,
     totalTravelMinutes: route.totalTravelMinutes,
     totalWaitMinutes: waitTime.total,
     totalTimeMinutes: profitability.totalTimeMinutes,
 
-    // Profitability
+    // Profitability - Overall
     netProfit: profitability.netProfit,
     profitPerHour: profitability.profitPerHour,
     rating: profitability.rating,
+
+    // Profitability - Job only (excluding travel to pickup)
+    jobOnlyFuelCost: jobFuelCost,
+    jobOnlyNetProfit: jobOnlyNetProfit,
+    jobOnlyTimeMinutes: jobOnlyTimeMinutes,
+    jobOnlyProfitPerHour: jobOnlyProfitPerHour,
 
     // Settings used
     fuelEfficiency: inputs.efficiency,
