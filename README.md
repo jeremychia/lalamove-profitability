@@ -11,40 +11,40 @@ A web-based tool for Singapore motorcycle delivery riders to quickly assess whet
 ### Core Calculator
 
 - 📍 **Multi-stop route calculation** using Singapore's OneMap API
-- 📱 **GPS location support** - tap to use your current location
+- 📱 **GPS location support** – tap to use your current location
 - ⛽ **Fuel cost estimation** based on your motorcycle model (10+ bikes supported)
 - ⏱️ **Smart wait time prediction** based on building type (HDB, condo, office, mall, etc.)
-- 🚦 **Traffic-aware timing** - auto-detects peak hours in Singapore
+- 🚦 **Traffic-aware timing** – auto-detects peak hours in Singapore
 - 💰 **Profitability rating** with $/hour breakdown
 
 ### Fare Breakdown
 
-- 💵 **Lalamove deductions breakdown** - see exactly what you earn
+- 💵 **Lalamove deductions breakdown** – see exactly what you earn
   - 15% commission (on base fare)
   - 9% VAT/GST
   - $0.50 platform fee offset
-  - CPF withholding (placeholder for Platform Worker's Act)
+  - CPF withholding (placeholder for Platform Workers Act)
 - 📊 **Net profit calculation** after all deductions and fuel costs
 
 ### Efficiency Guide
 
-- 📈 **Multi-stop efficiency analysis** - understand why 2-3 stop orders pay better
-- 🎯 **Scenario comparisons** - see $/hour for typical order types
-- ✅ **Decision framework** - quick take/consider/avoid guidelines
-- 🏢 **Wait time reference** - by building type
+- 📈 **Multi-stop efficiency analysis** – understand why 2–3 stop orders pay better
+- 🎯 **Scenario comparisons** – see $/hour for typical order types
+- ✅ **Decision framework** – quick take/consider/avoid guidelines
+- 🏢 **Wait time reference** – by building type
 
 ### User Experience
 
-- 🗺️ **Open in Google Maps** - one tap to navigate your route
-- 🏷️ **Building type badges** - see HDB/Condo/Office inside inputs
-- 📱 **Mobile-optimized** - compact single-line layout for small screens
-- ⚙️ **Customizable settings** - petrol price, bike model, API token
+- 🗺️ **Open in Google Maps** – one tap to navigate your route
+- 🏷️ **Building type badges** – see HDB/Condo/Office inside inputs
+- 📱 **Mobile-optimised** – compact single-line layout for small screens
+- ⚙️ **Customisable settings** – petrol price, bike model, API token
 
 ## 🎮 How It Works
 
-1. **Enter locations** - your current location (or tap 📍 for GPS), pickup, and delivery stops
-2. **Enter the fare** - the amount shown in Lalamove app
-3. **Get instant analysis** - profitability rating, fare breakdown, and $/hour
+1. **Enter locations** – your current location (or tap 📍 for GPS), pickup, and delivery stops
+2. **Enter the fare** – the amount shown in the Lalamove app
+3. **Get instant analysis** – profitability rating, fare breakdown, and $/hour
 
 ## 🔧 Technical Details
 
