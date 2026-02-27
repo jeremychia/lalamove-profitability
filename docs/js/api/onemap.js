@@ -171,12 +171,10 @@ export function storeToken(token, expiry = null) {
  * @returns {boolean}
  */
 export function isTokenExpired() {
-  // First check localStorage expiry
-  const expiry = localStorage.getItem(tokenExpiryKey);
   const token = localStorage.getItem(tokenKey);
 
-  // If no expiry in localStorage, check the JWT directly
-  if (!expiry && token) {
+  // If we have a token, always check the JWT claims directly (most reliable)
+  if (token) {
     const claims = decodeJWT(token);
     if (claims?.exp) {
       const expDate = new Date(claims.exp * 1000);
@@ -187,13 +185,21 @@ export function isTokenExpired() {
       );
       return isExpired;
     }
-    return true; // No expiry info at all, assume expired
   }
 
+  // Fallback to localStorage expiry (legacy)
+  const expiry = localStorage.getItem(tokenExpiryKey);
   if (!expiry) return true;
 
   try {
     const expiryDate = new Date(expiry);
+    // Check for Invalid Date
+    if (isNaN(expiryDate.getTime())) {
+      console.warn(
+        "⚠️ Invalid expiry date in localStorage, treating as expired",
+      );
+      return true;
+    }
     const now = new Date();
     const isExpired = now >= expiryDate;
     console.log(
