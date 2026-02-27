@@ -12,6 +12,67 @@ const { baseUrl, tokenKey, tokenExpiryKey } = CONFIG.api.onemap;
 let secrets = null;
 
 /**
+ * Decode and log JWT token claims for debugging
+ * @param {string} token - JWT token
+ * @returns {Object|null} Decoded payload or null
+ */
+function decodeJWT(token) {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) return null;
+
+    // Decode base64url payload (second part)
+    const payload = parts[1];
+    const decoded = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(decoded);
+  } catch (e) {
+    console.warn("Failed to decode JWT:", e.message);
+    return null;
+  }
+}
+
+/**
+ * Log token details for debugging
+ * @param {string} token
+ */
+function debugToken(token) {
+  const claims = decodeJWT(token);
+  if (!claims) {
+    console.warn("🔍 Could not decode token");
+    return;
+  }
+
+  console.group("🔍 OneMap Token Debug Info");
+  console.log("User ID:", claims.user_id);
+  console.log("Issuer:", claims.iss);
+  console.log("Issued At:", new Date(claims.iat * 1000).toLocaleString());
+  console.log("Expires:", new Date(claims.exp * 1000).toLocaleString());
+  console.log("Token ID (jti):", claims.jti);
+  console.log("Forever token:", claims.forever);
+
+  // Check for any permission-related claims
+  const permissionKeys = Object.keys(claims).filter(
+    (k) =>
+      k.includes("scope") ||
+      k.includes("permission") ||
+      k.includes("role") ||
+      k.includes("access"),
+  );
+  if (permissionKeys.length > 0) {
+    console.log(
+      "Permission claims:",
+      permissionKeys.map((k) => `${k}: ${claims[k]}`),
+    );
+  } else {
+    console.log("⚠️ No explicit permission claims found in token");
+    console.log("   (Permissions may be server-side based on user_id)");
+  }
+
+  console.log("Full claims:", claims);
+  console.groupEnd();
+}
+
+/**
  * Attempt to load secrets from local file
  * This file should be gitignored and contain personal credentials
  */
@@ -117,6 +178,10 @@ export async function fetchTokenWithCredentials() {
         data.expiry_timestamp,
         ")",
       );
+
+      // Debug: show token details
+      debugToken(data.access_token);
+
       return data.access_token;
     }
 
@@ -205,24 +270,51 @@ export async function searchAddress(searchTerm) {
 export async function getRoute(start, end, token = null) {
   const authToken = token || getStoredToken();
 
+  if (!authToken) {
+    throw new OneMapError("No API token available for routing", 401);
+  }
+
   const url = new URL(`${baseUrl}/public/routingsvc/route`);
   url.searchParams.set("start", `${start.lat},${start.lng}`);
   url.searchParams.set("end", `${end.lat},${end.lng}`);
   url.searchParams.set("routeType", "drive");
 
-  const headers = {};
-  if (authToken) {
-    headers["Authorization"] = authToken;
-  }
-
   try {
-    const response = await fetch(url, { headers });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Authorization: authToken,
+      },
+    });
 
     if (!response.ok) {
       if (response.status === 401) {
         throw new OneMapError(
           "Invalid or expired API token. Please update your token.",
           401,
+        );
+      }
+      if (response.status === 403) {
+        // Debug: show what we know about the token
+        console.group("❌ Routing API Access Denied (403)");
+        console.log(
+          "This error means your OneMap account does not have routing API permissions.",
+        );
+        console.log("");
+        console.log("Your account details:");
+        debugToken(authToken);
+        console.log("");
+        console.log("To fix this:");
+        console.log("1. Go to https://www.onemap.gov.sg/apidocs/contactus");
+        console.log("2. Request routing API access for your account");
+        console.log(
+          "3. Or register a new account and request routing access during signup",
+        );
+        console.groupEnd();
+
+        throw new OneMapError(
+          "Routing API access denied. Your OneMap account (see console for details) does not have routing permissions. Contact OneMap support to enable routing API access.",
+          403,
         );
       }
       throw new OneMapError(
