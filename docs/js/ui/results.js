@@ -575,6 +575,18 @@ function openSaveModal() {
     timeInput.value = localISOTime;
   }
 
+  // Reset fare type to regular
+  const fareTypeInput = $("fare-type");
+  if (fareTypeInput) {
+    fareTypeInput.value = "regular";
+  }
+
+  // Reset priority fee to 0
+  const priorityFeeInput = $("priority-fee");
+  if (priorityFeeInput) {
+    priorityFeeInput.value = "0";
+  }
+
   // Reset surcharge to 0
   const surchargeInput = $("surcharge-amount");
   if (surchargeInput) {
@@ -655,6 +667,8 @@ async function handleSaveSubmit(e) {
   }
 
   const jobPostedTime = $("job-posted-time")?.value;
+  const fareType = $("fare-type")?.value || "regular";
+  const priorityFee = parseFloat($("priority-fee")?.value) || 0;
   const surchargeAmount = parseFloat($("surcharge-amount")?.value) || 0;
   const notes = $("save-notes")?.value || "";
 
@@ -674,6 +688,8 @@ async function handleSaveSubmit(e) {
     result: lastResultData,
     formData: lastFormData || {},
     jobPostedTime,
+    fareType,
+    priorityFee,
     surchargeAmount,
     notes,
   });

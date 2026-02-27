@@ -56,7 +56,9 @@ export function getSheetsUrl() {
  * @param {Object} options.result - The calculation result from main.js
  * @param {Object} options.formData - Original form data
  * @param {string} options.jobPostedTime - When the job was posted (ISO string)
- * @param {number} options.surchargeAmount - Surcharge amount in SGD
+ * @param {string} options.fareType - Type of fare (regular, pooling, priority)
+ * @param {number} options.priorityFee - Priority fee amount in SGD
+ * @param {number} options.surchargeAmount - Other surcharge amount in SGD
  * @param {string} [options.notes] - Optional notes
  * @returns {Promise<{success: boolean, error?: string}>}
  */
@@ -64,6 +66,8 @@ export async function saveToSheets({
   result,
   formData,
   jobPostedTime,
+  fareType,
+  priorityFee,
   surchargeAmount,
   notes = "",
 }) {
@@ -78,6 +82,8 @@ export async function saveToSheets({
     result,
     formData,
     jobPostedTime,
+    fareType,
+    priorityFee,
     surchargeAmount,
     notes,
   });
@@ -127,6 +133,8 @@ function buildSaveData({
   result,
   formData,
   jobPostedTime,
+  fareType,
+  priorityFee,
   surchargeAmount,
   notes,
 }) {
@@ -136,6 +144,22 @@ function buildSaveData({
   const stopsDisplay = locations.stops
     .map((s, i) => `${i + 1}. ${s.address || s.searchTerm}`)
     .join(" | ");
+
+  // Calculate additional stop fee ($3 per additional stop beyond the first)
+  const additionalStops = Math.max(0, locations.stops.length - 1);
+  const additionalStopFee = additionalStops * 3;
+
+  // The fare entered by user is the total price (including all surcharges)
+  // Base fare = total fare - additional stop fee - priority fee - other surcharges
+  const totalFare = inputs.fare;
+  const baseFare =
+    totalFare - additionalStopFee - priorityFee - surchargeAmount;
+
+  // Recalculate deductions based on base fare (without surcharges)
+  const { fareBreakdown } = profitability;
+
+  // Total surcharges = additional stop fee + priority fee + other surcharges
+  const totalSurcharges = additionalStopFee + priorityFee + surchargeAmount;
 
   return {
     // Identifiers
@@ -152,33 +176,39 @@ function buildSaveData({
     deliveryStops: stopsDisplay,
     stopsCount: locations.stops.length,
 
-    // Financial - Base
-    baseFare: inputs.fare,
-    surchargeAmount: surchargeAmount,
-    totalFare: inputs.fare + surchargeAmount,
+    // Fare type
+    fareType: fareType,
 
-    // Financial - Deductions (from profitability)
-    grossFare: profitability.grossFare,
-    commission: profitability.commission,
-    vat: profitability.vat,
-    netFare: profitability.netFare,
+    // Financial - Fares
+    baseFare: baseFare,
+    additionalStopFee: additionalStopFee,
+    priorityFee: priorityFee,
+    surchargeAmount: surchargeAmount,
+    totalSurcharges: totalSurcharges,
+    totalFare: totalFare,
+
+    // Financial - Deductions (from profitability fareBreakdown)
+    grossFare: fareBreakdown.grossFare,
+    commission: fareBreakdown.commission,
+    vat: fareBreakdown.vat,
+    cpfWithholding: fareBreakdown.cpfWithholding,
+    platformFee: fareBreakdown.platformFee,
+    totalDeductions: fareBreakdown.totalDeductions,
+    netFare: fareBreakdown.netFare,
 
     // Costs
     fuelCost: fuel.cost,
-    fuelLitres: fuel.litres,
+    fuelLitres: fuel.litresUsed,
 
     // Distance & Time
     totalDistanceKm: route.totalDistanceKm,
     totalTravelMinutes: route.totalTravelMinutes,
     totalWaitMinutes: waitTime.total,
-    totalTimeMinutes: profitability.totalMinutes,
+    totalTimeMinutes: profitability.totalTimeMinutes,
 
     // Profitability
-    netProfit: profitability.netProfit + surchargeAmount, // Add surcharge to net
-    profitPerHour:
-      ((profitability.netProfit + surchargeAmount) /
-        profitability.totalMinutes) *
-      60,
+    netProfit: profitability.netProfit,
+    profitPerHour: profitability.profitPerHour,
     rating: profitability.rating,
 
     // Settings used

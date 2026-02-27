@@ -297,9 +297,43 @@
               </div>
 
               <div class="form-group">
+                <label for="fare-type">
+                  <span class="icon">🏷️</span>
+                  Fare Type
+                  <span class="required">*</span>
+                </label>
+                <select id="fare-type" name="fare-type" required>
+                  <option value="regular">Regular</option>
+                  <option value="pooling">Delivery Fee (Pooling)</option>
+                  <option value="priority">Priority</option>
+                </select>
+                <div class="input-hint">The type of order fare</div>
+              </div>
+
+              <div class="form-group">
+                <label for="priority-fee">
+                  <span class="icon">⚡</span>
+                  Priority Fee (SGD)
+                </label>
+                <div class="input-with-prefix">
+                  <span class="input-prefix">$</span>
+                  <input
+                    type="number"
+                    id="priority-fee"
+                    name="priority-fee"
+                    placeholder="0.00"
+                    step="0.01"
+                    min="0"
+                    value="0"
+                  />
+                </div>
+                <div class="input-hint">Priority fee if applicable</div>
+              </div>
+
+              <div class="form-group">
                 <label for="surcharge-amount">
                   <span class="icon">💰</span>
-                  Surcharge Amount (SGD)
+                  Other Surcharges (SGD)
                 </label>
                 <div class="input-with-prefix">
                   <span class="input-prefix">$</span>
@@ -314,7 +348,8 @@
                   />
                 </div>
                 <div class="input-hint">
-                  Peak hour, priority, weather, or other surcharges
+                  Peak hour, weather, or other surcharges (excluding priority
+                  fee)
                 </div>
               </div>
 
