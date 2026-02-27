@@ -155,60 +155,42 @@ export function getStoredToken() {
 }
 
 /**
- * Store API token in localStorage with expiry
+ * Store API token in localStorage
+ * Extracts expiry from JWT claims for reliable expiry checking
  * @param {string} token
- * @param {string} [expiry] - Expiry datetime string from API
  */
-export function storeToken(token, expiry = null) {
+export function storeToken(token) {
   localStorage.setItem(tokenKey, token);
-  if (expiry) {
-    localStorage.setItem(tokenExpiryKey, expiry);
+
+  // Extract and store expiry from JWT claims (most reliable)
+  const claims = decodeJWT(token);
+  if (claims?.exp) {
+    // Store as Unix timestamp (seconds) - simple, no parsing issues
+    localStorage.setItem(tokenExpiryKey, String(claims.exp));
   }
 }
 
 /**
  * Check if stored token is expired
+ * Uses JWT's own expiry claim for reliability
  * @returns {boolean}
  */
 export function isTokenExpired() {
   const token = localStorage.getItem(tokenKey);
+  if (!token) return true;
 
-  // If we have a token, always check the JWT claims directly (most reliable)
-  if (token) {
-    const claims = decodeJWT(token);
-    if (claims?.exp) {
-      const expDate = new Date(claims.exp * 1000);
-      const now = new Date();
-      const isExpired = now >= expDate;
-      console.log(
-        `🕐 Token expiry check (from JWT): expires ${expDate.toLocaleString()}, now ${now.toLocaleString()}, expired: ${isExpired}`,
-      );
-      return isExpired;
-    }
+  // Always use JWT's embedded expiry (most reliable)
+  const claims = decodeJWT(token);
+  if (!claims?.exp) return true;
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  const isExpired = nowSeconds >= claims.exp;
+
+  if (isExpired) {
+    console.log("⏰ Token is expired, will fetch new one");
   }
 
-  // Fallback to localStorage expiry (legacy)
-  const expiry = localStorage.getItem(tokenExpiryKey);
-  if (!expiry) return true;
-
-  try {
-    const expiryDate = new Date(expiry);
-    // Check for Invalid Date
-    if (isNaN(expiryDate.getTime())) {
-      console.warn(
-        "⚠️ Invalid expiry date in localStorage, treating as expired",
-      );
-      return true;
-    }
-    const now = new Date();
-    const isExpired = now >= expiryDate;
-    console.log(
-      `🕐 Token expiry check (from localStorage): expires ${expiryDate.toLocaleString()}, now ${now.toLocaleString()}, expired: ${isExpired}`,
-    );
-    return isExpired;
-  } catch {
-    return true;
-  }
+  return isExpired;
 }
 
 /**
@@ -266,12 +248,8 @@ export async function fetchTokenWithCredentials() {
     const data = await response.json();
 
     if (data.access_token) {
-      storeToken(data.access_token, data.expiry_timestamp);
-      console.log(
-        "✅ Token fetched and stored (expires:",
-        data.expiry_timestamp,
-        ")",
-      );
+      storeToken(data.access_token);
+      console.log("✅ Token fetched and stored");
 
       // Debug: show token details
       debugToken(data.access_token);
@@ -291,40 +269,34 @@ export async function fetchTokenWithCredentials() {
  * @returns {Promise<string|null>}
  */
 export async function getValidToken() {
-  // Check if we have a non-expired token
+  // Check if we have a valid non-expired token
   const storedToken = getStoredToken();
   if (storedToken && !isTokenExpired()) {
-    console.log("✅ Using stored OneMap token (not expired)");
     return storedToken;
   }
 
-  if (storedToken && isTokenExpired()) {
-    console.log("⚠️ Stored token is expired, clearing and fetching new one...");
-    // Clear the expired token so we don't keep using it
+  // Clear any expired token
+  if (storedToken) {
     clearToken();
-  } else if (!storedToken) {
-    console.log("ℹ️ No stored token found, fetching new one...");
   }
 
-  // Try to fetch a new token using credentials
+  // Fetch a new token using credentials
   const newToken = await fetchTokenWithCredentials();
   if (newToken) {
     return newToken;
   }
 
-  // No new token and no valid stored token
+  // No token available
   console.error("❌ Could not obtain a valid OneMap token");
-  console.log(
-    "   Please check that ONEMAP_EMAIL and ONEMAP_PASSWORD secrets are configured correctly",
-  );
+  console.log("   Check ONEMAP_EMAIL and ONEMAP_PASSWORD secrets");
   return null;
 }
-
 /**
- * Clear stored API token
+ * Clear stored API token and expiry
  */
 export function clearToken() {
   localStorage.removeItem(tokenKey);
+  localStorage.removeItem(tokenExpiryKey);
 }
 
 /**
