@@ -79,31 +79,48 @@ function debugToken(token) {
 async function loadSecrets() {
   if (secrets !== null) return secrets;
 
+  console.group("🔐 Loading secrets...");
+
   try {
     const module = await import("../secrets.js");
     secrets = module.SECRETS;
 
+    console.log("secrets.js loaded, checking contents...");
+    console.log("onemap object exists:", !!secrets?.onemap);
+    console.log("googleSheets object exists:", !!secrets?.googleSheets);
+
     // Validate that secrets are actually configured (not empty placeholders)
+    const email = secrets?.onemap?.email || "";
+    const password = secrets?.onemap?.password || "";
+
+    console.log("Email value:", email ? `"${email}"` : "(empty)");
+    console.log("Email length:", email.length);
+    console.log("Password length:", password.length);
+
     const hasEmail =
-      secrets?.onemap?.email &&
-      secrets.onemap.email.length > 0 &&
-      !secrets.onemap.email.includes("${{");
+      email.length > 0 &&
+      !email.includes("${{") &&
+      email !== "undefined" &&
+      email !== "null";
     const hasPassword =
-      secrets?.onemap?.password &&
-      secrets.onemap.password.length > 0 &&
-      !secrets.onemap.password.includes("${{");
+      password.length > 0 &&
+      !password.includes("${{") &&
+      password !== "undefined" &&
+      password !== "null";
 
     if (hasEmail && hasPassword) {
-      console.log("✅ Local secrets loaded (email:", secrets.onemap.email, ")");
+      console.log("✅ Valid credentials found");
+      console.groupEnd();
       return secrets;
     } else {
-      console.warn("⚠️ secrets.js found but credentials are empty or invalid");
-      console.log("   Email configured:", hasEmail);
-      console.log("   Password configured:", hasPassword);
+      console.warn("⚠️ Credentials are empty or invalid");
+      console.log("   hasEmail:", hasEmail);
+      console.log("   hasPassword:", hasPassword);
       console.log("");
       console.log("   If deployed via GitHub Pages, ensure you have set:");
       console.log("   - Repository Settings → Secrets → ONEMAP_EMAIL");
       console.log("   - Repository Settings → Secrets → ONEMAP_PASSWORD");
+      console.groupEnd();
       secrets = false;
       return null;
     }
@@ -111,6 +128,7 @@ async function loadSecrets() {
     // secrets.js doesn't exist - that's fine, user will input token manually
     console.log("ℹ️ No secrets.js found - manual token entry required");
     console.log("   Error:", e.message);
+    console.groupEnd();
     secrets = false;
     return null;
   }
