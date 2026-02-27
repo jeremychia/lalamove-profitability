@@ -270,7 +270,9 @@ export async function getValidToken() {
   }
 
   if (storedToken && isTokenExpired()) {
-    console.log("⚠️ Stored token is expired, fetching new one...");
+    console.log("⚠️ Stored token is expired, clearing and fetching new one...");
+    // Clear the expired token so we don't keep using it
+    clearToken();
   } else if (!storedToken) {
     console.log("ℹ️ No stored token found, fetching new one...");
   }
@@ -281,13 +283,12 @@ export async function getValidToken() {
     return newToken;
   }
 
-  // Fall back to stored token even if expired (might still work)
-  if (storedToken) {
-    console.warn(
-      "⚠️ Could not fetch new token, using expired token as fallback",
-    );
-  }
-  return storedToken;
+  // No new token and no valid stored token
+  console.error("❌ Could not obtain a valid OneMap token");
+  console.log(
+    "   Please check that ONEMAP_EMAIL and ONEMAP_PASSWORD secrets are configured correctly",
+  );
+  return null;
 }
 
 /**
