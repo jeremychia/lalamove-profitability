@@ -82,10 +82,35 @@ async function loadSecrets() {
   try {
     const module = await import("../secrets.js");
     secrets = module.SECRETS;
-    console.log("✅ Local secrets loaded");
-    return secrets;
+
+    // Validate that secrets are actually configured (not empty placeholders)
+    const hasEmail =
+      secrets?.onemap?.email &&
+      secrets.onemap.email.length > 0 &&
+      !secrets.onemap.email.includes("${{");
+    const hasPassword =
+      secrets?.onemap?.password &&
+      secrets.onemap.password.length > 0 &&
+      !secrets.onemap.password.includes("${{");
+
+    if (hasEmail && hasPassword) {
+      console.log("✅ Local secrets loaded (email:", secrets.onemap.email, ")");
+      return secrets;
+    } else {
+      console.warn("⚠️ secrets.js found but credentials are empty or invalid");
+      console.log("   Email configured:", hasEmail);
+      console.log("   Password configured:", hasPassword);
+      console.log("");
+      console.log("   If deployed via GitHub Pages, ensure you have set:");
+      console.log("   - Repository Settings → Secrets → ONEMAP_EMAIL");
+      console.log("   - Repository Settings → Secrets → ONEMAP_PASSWORD");
+      secrets = false;
+      return null;
+    }
   } catch (e) {
     // secrets.js doesn't exist - that's fine, user will input token manually
+    console.log("ℹ️ No secrets.js found - manual token entry required");
+    console.log("   Error:", e.message);
     secrets = false;
     return null;
   }
