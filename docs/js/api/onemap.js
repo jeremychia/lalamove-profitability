@@ -153,6 +153,8 @@ export async function fetchTokenWithCredentials() {
   const url = `${baseUrl}/auth/post/getToken`;
 
   try {
+    console.log("🔑 Fetching new OneMap token...");
+
     const response = await fetch(url, {
       method: "POST",
       headers: {
@@ -165,7 +167,27 @@ export async function fetchTokenWithCredentials() {
     });
 
     if (!response.ok) {
-      console.warn("Failed to fetch token:", response.status);
+      let errorBody = "";
+      try {
+        errorBody = await response.text();
+      } catch (e) {
+        errorBody = "(could not read response body)";
+      }
+
+      console.group("❌ Failed to fetch OneMap token");
+      console.log("Status:", response.status, response.statusText);
+      console.log("Response:", errorBody);
+      console.log("");
+      console.log("Email used:", secretsData.onemap.email);
+      console.log("Password length:", secretsData.onemap.password?.length || 0);
+      console.log("");
+      if (response.status === 401) {
+        console.log("This usually means:");
+        console.log("- Incorrect email or password in secrets.js");
+        console.log("- Account doesn't exist or is not verified");
+      }
+      console.groupEnd();
+
       return null;
     }
 
@@ -200,7 +222,14 @@ export async function getValidToken() {
   // Check if we have a non-expired token
   const storedToken = getStoredToken();
   if (storedToken && !isTokenExpired()) {
+    console.log("✅ Using stored OneMap token (not expired)");
     return storedToken;
+  }
+
+  if (storedToken && isTokenExpired()) {
+    console.log("⚠️ Stored token is expired, fetching new one...");
+  } else if (!storedToken) {
+    console.log("ℹ️ No stored token found, fetching new one...");
   }
 
   // Try to fetch a new token using credentials
@@ -210,6 +239,11 @@ export async function getValidToken() {
   }
 
   // Fall back to stored token even if expired (might still work)
+  if (storedToken) {
+    console.warn(
+      "⚠️ Could not fetch new token, using expired token as fallback",
+    );
+  }
   return storedToken;
 }
 
@@ -289,8 +323,75 @@ export async function getRoute(start, end, token = null) {
 
     if (!response.ok) {
       if (response.status === 401) {
+        // Debug: show detailed info about the 401 error
+        let errorBody = "";
+        try {
+          errorBody = await response.text();
+        } catch (e) {
+          errorBody = "(could not read response body)";
+        }
+
+        console.group("❌ Routing API Unauthorized (401)");
+        console.log("Response body:", errorBody);
+        console.log("");
+        console.log(
+          "Token used (first 50 chars):",
+          authToken?.substring(0, 50) + "...",
+        );
+        console.log("Token length:", authToken?.length || 0);
+        console.log("");
+
+        // Check common issues
+        if (!authToken) {
+          console.log("❌ Issue: No token provided");
+        } else if (authToken.length < 100) {
+          console.log("⚠️ Issue: Token seems too short - might be incomplete");
+        } else if (!authToken.includes(".")) {
+          console.log("⚠️ Issue: Token doesn't look like a JWT (no dots)");
+        } else {
+          // Try to decode and show token info
+          debugToken(authToken);
+
+          // Check if token is expired
+          const claims = decodeJWT(authToken);
+          if (claims?.exp) {
+            const expDate = new Date(claims.exp * 1000);
+            const now = new Date();
+            if (now > expDate) {
+              console.log("❌ Issue: Token is EXPIRED");
+              console.log("   Expired at:", expDate.toLocaleString());
+              console.log("   Current time:", now.toLocaleString());
+            } else {
+              console.log(
+                "✓ Token is not expired (expires:",
+                expDate.toLocaleString() + ")",
+              );
+            }
+          }
+        }
+
+        console.log("");
+        console.log("To fix this:");
+        console.log(
+          "1. Check if your token in secrets.js is correct and complete",
+        );
+        console.log(
+          "2. Try refreshing your token at https://www.onemap.gov.sg/apidocs/",
+        );
+        console.log(
+          "3. Make sure the token hasn't been truncated when copying",
+        );
+        console.log("4. Check your secrets.js has the correct format:");
+        console.log("   export const SECRETS = {");
+        console.log("     onemap: {");
+        console.log("       email: 'your@email.com',");
+        console.log("       password: 'yourpassword'");
+        console.log("     }");
+        console.log("   };");
+        console.groupEnd();
+
         throw new OneMapError(
-          "Invalid or expired API token. Please update your token.",
+          "Invalid or expired API token. Check browser console for details.",
           401,
         );
       }
