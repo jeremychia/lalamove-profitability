@@ -171,12 +171,35 @@ export function storeToken(token, expiry = null) {
  * @returns {boolean}
  */
 export function isTokenExpired() {
+  // First check localStorage expiry
   const expiry = localStorage.getItem(tokenExpiryKey);
+  const token = localStorage.getItem(tokenKey);
+
+  // If no expiry in localStorage, check the JWT directly
+  if (!expiry && token) {
+    const claims = decodeJWT(token);
+    if (claims?.exp) {
+      const expDate = new Date(claims.exp * 1000);
+      const now = new Date();
+      const isExpired = now >= expDate;
+      console.log(
+        `🕐 Token expiry check (from JWT): expires ${expDate.toLocaleString()}, now ${now.toLocaleString()}, expired: ${isExpired}`,
+      );
+      return isExpired;
+    }
+    return true; // No expiry info at all, assume expired
+  }
+
   if (!expiry) return true;
 
   try {
     const expiryDate = new Date(expiry);
-    return new Date() >= expiryDate;
+    const now = new Date();
+    const isExpired = now >= expiryDate;
+    console.log(
+      `🕐 Token expiry check (from localStorage): expires ${expiryDate.toLocaleString()}, now ${now.toLocaleString()}, expired: ${isExpired}`,
+    );
+    return isExpired;
   } catch {
     return true;
   }
